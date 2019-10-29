@@ -2,7 +2,7 @@
 % Please edit documentation in R/helper_functions.R
 \name{get_leaf_values}
 \alias{get_leaf_values}
-\title{For a gradient tree fill the leafnodes with the gradient update gamma}
+\title{For a gradient tree fill the leafnodes with the gradient update gamma (CURRENTLY NOT USED)}
 \usage{
 get_leaf_values(tree)
 }
@@ -13,5 +13,5 @@ get_leaf_values(tree)
 A data.frame object with for each leaf the gradient update
 }
 \description{
-For a gradient tree fill the leafnodes with the gradient update gamma
+For a gradient tree fill the leafnodes with the gradient update gamma (CURRENTLY NOT USED)
 }
