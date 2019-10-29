@@ -4,7 +4,7 @@
 \alias{get_DF_boost}
 \title{Create or update the DF_boost data.frame}
 \usage{
-get_DF_boost(DF, theta)
+get_DF_boost(DF, theta, alpha = 0)
 }
 \arguments{
 \item{DF}{A data frame with the response and covariates or when updating the current DF_boost data frame}

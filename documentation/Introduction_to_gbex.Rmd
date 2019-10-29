@@ -116,7 +116,7 @@ require(treeClust)
 require(magrittr)
 require(dplyr)
 
-package_directory <- "/Users/jjvelthoen/Dropbox/PhD/gradient boosting extremes/gbex"
+package_directory <- "/Users/jjvelthoen/Documents/GitHub/gbex"
 install.packages(package_directory,repos=NULL,type="source",quiet=T)
 library(gbex)
 ```
@@ -141,25 +141,21 @@ data <- get_data(n,d)
 s <- data$s # the sigma parameter
 g <- data$g # the gamma parameter
 y <- data$y # the response vector
-print("The response vector:")
-head(y)
 X <- data.frame(X=data$X) # the covariates
-print("The covariate matrix:")
-head(X)
 ```
 
 Before applying the gradient boosting several tuning parameters need to be specified,
 ```{r}
-B <- 180  # The number of gradient boosting steps
-lambda=c(0.025,0.0025) # The learning rate for the sigma and gamma parameter
+B <- 200  # The number of gradient boosting steps
+lambda=c(0.01,0.0025) # The learning rate for the sigma and gamma parameter
 depth=c(2,2) # The maximum depth for a single sigma and gamma tree
-min_leaf_size=c(4,4) # The minimum number of observations contained in the leafnodes 
-sf=0.1 # The subsample fraction used for estimating each tree (in a single step only one subsample is drawn and used for both the sigma and gamma tree)
+min_leaf_size=c(30,15) # The minimum number of observations contained in the leafnodes 
+sf=0.5 # The subsample fraction used for estimating each tree (in a single step only one subsample is drawn and used for both the sigma and gamma tree)
 ```
 
 The model is now fitted using the \textit{gbex} function,
 ```{r}
-fit <- gbex(y,X,B=B,lambda=lambda,depth=depth,min_leaf_size=min_leaf_size,sf=sf)
+fit <- gbex(y,X,B=B,lambda=lambda,depth=depth,min_leaf_size=min_leaf_size,sf=sf,alpha=0)
 ```
 
 To see how the fit performs some diagnostics can be plotted where in red the true parameter and in blue the estimated ones.

@@ -4,12 +4,12 @@
 \alias{fill_leafs_g}
 \title{Fill the leafnodes of the gamma tree using linesearch}
 \usage{
-fill_leafs_g(tree, DF_boost)
+fill_leafs_g(tree, DF_tree)
 }
 \arguments{
 \item{tree}{a gradient tree}
 
-\item{DF_boost}{the boosting data.frame}
+\item{DF_tree}{the boosting dataframe used for obtaining the tree}
 }
 \value{
 A data.frame object with for each leaf the gradient update
