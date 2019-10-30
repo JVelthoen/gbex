@@ -25,7 +25,7 @@ PD_dev_diff_s = function(v,A,B,alpha=0.5){
 #' @return the derivative in point v
 #' @export
 PD_dev_diff_g = function(v,A,B,alpha=0.5){
-  Int_diff_g(c(v[1],v[2],alpha)) - (1+alpha) * GP_density(v,A,B)^(alpha -1) * GP_density_diff_g(v,A,B)
+  Int_diff_g(c(v[1],v[2],alpha)) - (1+alpha) * GP_density(v,A,B)^(alpha - 1) * GP_density_diff_g(v,A,B)
 }
 
 #' The density power divergence differentiated two times to sigma
@@ -176,7 +176,7 @@ B_diff2_s = function(v,A,B){
 #' @return the derivative in the given point v
 #' @export
 B_diff_g = function(v,A,B){
-  1/v[2] * B * log(B) - v[3]/v[2] * A * B
+  -1/v[2] * B * log(B) - v[3]/v[2] * A * B
 }
 
 #' The B function in the split of the GP density differentiated two times to gamma
@@ -185,7 +185,7 @@ B_diff_g = function(v,A,B){
 #' @return the derivative in the given point v
 #' @export
 B_diff2_g = function(v,A,B){
-  B/v[2]^2 * (log(B) - v[3]*A)^2 + v[3]^2/v[2] * A^2 * B
+  B/v[2]^2 *( (log(B) + v[3]*A)^2 + 2* (log(B) + v[3]*A) ) + v[3]^2/v[2] * A^2 * B
 }
 
 #' The density of the generalized pareto distribution

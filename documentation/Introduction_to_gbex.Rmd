@@ -155,7 +155,7 @@ sf=0.5 # The subsample fraction used for estimating each tree (in a single step 
 
 The model is now fitted using the \textit{gbex} function,
 ```{r}
-fit <- gbex(y,X,B=B,lambda=lambda,depth=depth,min_leaf_size=min_leaf_size,sf=sf,alpha=0)
+fit <- gbex(y,X,B=B,lambda=lambda,depth=depth,min_leaf_size=min_leaf_size,sf=sf,alpha=0.5)
 ```
 
 To see how the fit performs some diagnostics can be plotted where in red the true parameter and in blue the estimated ones.
