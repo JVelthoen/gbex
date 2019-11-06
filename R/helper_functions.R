@@ -57,7 +57,7 @@ fill_leafs_g <- function(tree,DF_tree){
 #' Update the current parameters by one gradient step
 #'
 #' @param TREE_s a list of gradient tree for sigma together with a df with gradient step per leafnode
-#' @param TREE_s a list of gradient tree for sigma together with a df with gradient step per leafnode
+#' @param TREE_G a list of gradient tree for gamma together with a df with gradient step per leafnode
 #' @param DF_boost the current boosting data frame
 #' @param lambda a vector of length two with learning rate for sigma and gamma
 #' @return A data.frame object with for each leaf the gradient update
