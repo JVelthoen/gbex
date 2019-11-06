@@ -5,7 +5,7 @@
 \title{Estimate scale and shape for the GPD using gradient boosting}
 \usage{
 gbex(y, X, B = 180, lambda = c(0.025, 0.0025), depth = c(2, 2),
-  min_leaf_size = c(30, 30), sf = 0.5, alpha = 0)
+  min_leaf_size = c(30, 30), sf = 0.5, alpha = 0.5, silent = F)
 }
 \arguments{
 \item{y}{Response variables (vector of length n)}
@@ -21,6 +21,8 @@ gbex(y, X, B = 180, lambda = c(0.025, 0.0025), depth = c(2, 2),
 \item{sf}{sample fraction used for fitting the trees}
 
 \item{alpha}{the power for power divergence (default alpha = 0 meaning maximum likelihood is used)}
+
+\item{silent}{boolean indicating whether progress during fitting procedure should be printed.}
 }
 \value{
 A list with the estimates of scale and shape the deviance for each optimaization step a list of trees and a data frame with all parameters of the final optimization step.

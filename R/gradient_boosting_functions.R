@@ -7,9 +7,10 @@
 #' @param depth Maximum depth of the trees
 #' @param sf  sample fraction used for fitting the trees
 #' @param alpha the power for power divergence (default alpha = 0 meaning maximum likelihood is used)
+#' @param silent boolean indicating whether progress during fitting procedure should be printed.
 #' @return A list with the estimates of scale and shape the deviance for each optimaization step a list of trees and a data frame with all parameters of the final optimization step.
 #' @export
-gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,alpha = 0){
+gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,alpha = 0,silent=F){
   n <- length(y)
   if(!is.data.frame(X)) X = data.frame(X=X)
   # Estimate the unconditional tail first and set the estimates as the first guess
@@ -47,6 +48,10 @@ gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),depth=c(2,2),min_leaf_size=c(3
     # Save the estimated trees and the deviance
     TREES[[b]] <- list(tree_s = TREE_s, tree_g=TREE_g)
     dev[b+1] <- mean(DF_boost$dev)
+
+    if(!silent & b %in% ((1:10)*(B/10))){
+      cat(paste0(round(b/B,1)*100,"% of trees fitted\n"))
+    }
   }
 
   output <- list(s_hat= DF_boost$s_hat, g_hat = DF_boost$g_hat,
