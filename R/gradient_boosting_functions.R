@@ -10,7 +10,7 @@
 #' @param silent boolean indicating whether progress during fitting procedure should be printed.
 #' @return A list with the estimates of scale and shape the deviance for each optimaization step a list of trees and a data frame with all parameters of the final optimization step.
 #' @export
-gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,alpha = 0.5,silent=F){
+gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,alpha = 0,silent=F){
   n <- length(y)
   if(!is.data.frame(X)) X = data.frame(X=X)
   # Estimate the unconditional tail first and set the estimates as the first guess
