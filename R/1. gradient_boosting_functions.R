@@ -13,6 +13,7 @@
 gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,alpha = 0,silent=F){
   n <- length(y)
   if(!is.data.frame(X)) X = data.frame(X=X)
+  cov_names <- colnames(X)
   # Estimate the unconditional tail first and set the estimates as the first guess
   theta_init <- first_guess(y)
 
@@ -28,15 +29,23 @@ gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),depth=c(2,2),min_leaf_size=c(3
     # Take a subsample from the entire data.frame
     DF_tree <- DF_boost[sample(1:n,sf*n,replace=F),]
 
-   # fit a tree for sigma the final TREE object is the tree itself and the new values
-     ctrl_s=rpart::rpart.control(maxdepth = depth[1], minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = min_leaf_size[1])
-     tree_s= rpart::rpart(r_s~X.1+X.2,data=DF_tree, method='anova',control=ctrl_s)
-     leaf_values_s <- fill_leafs_s(tree_s,DF_tree)
-     TREE_s <- list(tree=tree_s,values = leaf_values_s)
+    # fit a tree for sigma the final TREE object is the tree itself and the new values
+    ctrl_s=rpart::rpart.control(maxdepth = depth[1], minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = min_leaf_size[1])
+    formula_s <- as.formula(
+      paste("r_s",
+            paste(cov_names, collapse = " + "),
+            sep = " ~ "))
+    tree_s= rpart::rpart(formula_s,data=DF_tree, method='anova',control=ctrl_s)
+    leaf_values_s <- fill_leafs_s(tree_s,DF_tree)
+    TREE_s <- list(tree=tree_s,values = leaf_values_s)
 
     # fit a tree for gamma the final TREE object is the tree itself and the new values
     ctrl_g=rpart::rpart.control(maxdepth = depth[2], minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = min_leaf_size[2])
-    tree_g= rpart::rpart(r_g~X.1+X.2,data=DF_tree, method='anova',control=ctrl_g)
+    formula_g <- as.formula(
+      paste("r_g",
+            paste(cov_names, collapse = " + "),
+            sep = " ~ "))
+    tree_g= rpart::rpart(formula_g,data=DF_tree, method='anova',control=ctrl_g)
     leaf_values_g <- fill_leafs_g(tree_g,DF_tree)
     TREE_g <- list(tree=tree_g,values = leaf_values_g)
 
@@ -49,7 +58,7 @@ gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),depth=c(2,2),min_leaf_size=c(3
     TREES[[b]] <- list(tree_s = TREE_s, tree_g=TREE_g)
     dev[b+1] <- mean(DF_boost$dev)
 
-    if(!silent & b %in% ((1:10)*(B/10))){
+    if(!silent & b %in% round(((1:10)*(B/10)))){
       cat(paste0(round(b/B,1)*100,"% of trees fitted\n"))
     }
   }
@@ -98,7 +107,7 @@ predict.gbex <- function(object, newdata = NULL){
   return(pred)
 }
 
-#' Compute the deviance at each iteration for a given dataset
+#' Compute the deviance at each iteration for a given dataset (CURRENTLY only working for likelihood)
 #'
 #' @param object A fitted gbex object
 #' @param X A dataframe with the right column names
