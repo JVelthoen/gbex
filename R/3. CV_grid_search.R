@@ -2,25 +2,30 @@
 #'
 #' @param X data.frame of covariates
 #' @param y vector of response
-#' @param par character name of the parameter to adjust
-#' @param grid_values numeric vector of values to perform gridsearch over
+#' @param par character name of the parameter to adjust, if it is NULL cross validation is performed using parameters in par_fixed
+#' @param grid_values numeric vector of values to perform gridsearch ove, if it is NULL cross validation is performed using parameters in par_fixed
 #' @param num_folds integer number of folds used for cross validation
 #' @param par_fixed named list of values of parameters that should remain fixed
 #' @return the optimal parameter value and a dataframe with cross validation performance for each of the parameter values together with the chosen B
 #' @export
-CV_grid_search <- function(X,y,par,grid_values,num_folds = 4,par_fixed){
+CV_grid_search <- function(X,y,par=NULL,grid_values=NULL,num_folds = 4,par_fixed){
   folds <- divide_in_folds(y,num_folds)
 
   CV_results <- 1:num_folds %>%
-    map(get_CV_data,X=X,y=y,folds=folds) %>%
-    map(get_argument_list,par=par,grid_values=grid_values,par_fixed=par_fixed) %>%
-    map(performance_per_fold) %>%
-    reduce(`+`)
+    purrr::map(get_CV_data,X=X,y=y,folds=folds) %>%
+    purrr::map(get_argument_list,par=par,grid_values=grid_values,par_fixed=par_fixed) %>%
+    purrr::map(performance_per_fold) %>%
+    add_folds_togehter()
 
-  CV_df <- get_CV_df(CV_results,grid_values,par)
-  par_opt <- get_optimal_parameters(CV_df)
-
-  return(list(par_opt=par_opt,CV_df=CV_df))
+  if(all(!is.null(par),!is.null(grid_values))){
+    CV_df <- get_CV_df(CV_results,grid_values,par)
+    par_opt <- get_optimal_parameters(CV_df)
+    return(list(par_opt=par_opt,CV_df=CV_df))
+  } else{
+    CV_df <- get_CV_df(CV_results,1,"par")
+    par_opt <- CV_df$B
+    return(list(par_opt = par_opt))
+  }
 }
 
 #' Divide the data up in folds for cross validation
@@ -50,7 +55,10 @@ divide_in_folds <- function(y,num_folds){
 #' @return the deviance for each step of the boosting algorithm
 #' @export
 CV_model_run <- function(Xtrain,ytrain,Xtest,ytest,B,lambda,depth,min_leaf_size,sf){
-  fit <- gbex(ytrain,Xtrain,B,lambda,depth,min_leaf_size,sf,alpha,silent=T)
+  fit <- gbex(y=ytrain,X=Xtrain,
+              B=B,lambda=lambda,depth=depth,
+              min_leaf_size=min_leaf_size,sf=sf,
+              silent=T,alpha=0)
   dev_test <- dev_per_step(fit,Xtest,ytest)
   return(dev_test)
 }
@@ -80,12 +88,16 @@ get_CV_data <- function(fold,folds,X,y){
 #' @return a list with all arguments for the gbex function
 #' @export
 get_argument_list <- function(data,par,grid_values,par_fixed){
-  argument_list <- grid_values %>%
-    array_branch(m=1) %>%
-    map(function(value){
-      data[[par]] <- value
-      return(c(data,par_fixed))
-    })
+  if(all(!is.null(par),!is.null(grid_values))){
+    argument_list <- grid_values %>%
+      purrr::array_branch(m=1) %>%
+      purrr::map(function(value){
+        data[[par]] <- value
+        return(c(data,par_fixed))
+      })
+  } else{
+    argument_list = list(c(data,par_fixed))
+  }
   return(argument_list)
 }
 
@@ -95,9 +107,20 @@ get_argument_list <- function(data,par,grid_values,par_fixed){
 #' @return a matrix where each row matches the the elements of arg_lists and the columns the number of trees
 #' @export
 performance_per_fold <- function(arg_lists){
-  performance_vec <- invoke_map(CV_model_run,arg_lists) %>%
-    invoke('rbind',.)
+  performance_matrix <- purrr::invoke_map(CV_model_run,arg_lists) %>%
+    purrr::invoke('rbind',.)
   return(performance_matrix)
+}
+
+#' Add the cross validation of different folds together
+#'
+#' @param fold_results list of results of each fold
+#' @return a pointwise mean over the different folds
+#' @export
+add_folds_togehter <- function(fold_results){
+  num_folds <- length(fold_results)
+  aggregated_folds <- purrr::reduce(fold_results,`+`)/num_folds
+  return(aggregated_folds)
 }
 
 #' Calculate the optimal parameter
@@ -107,8 +130,8 @@ performance_per_fold <- function(arg_lists){
 #' @export
 get_optimal_parameters <- function(CV_df){
   par_opt <- CV_df %>%
-    filter(dev == min(dev)) %>%
-    select(-c(dev,B)) %>%
+    dplyr::filter(dev == min(dev)) %>%
+    dplyr::select(-c(dev,B)) %>%
     unlist(use.names=F)
   return(par_opt)
 }
@@ -125,7 +148,7 @@ get_CV_df <- function(performance,grid_values,par){
     apply(1,function(x){
       data.frame(B=which(x == min(x)) -1, dev=min(x))
       }) %>%
-    invoke("rbind",.) %>%
+    purrr::invoke("rbind",.) %>%
     cbind(par = grid_values)
   return(CV_df)
 }
