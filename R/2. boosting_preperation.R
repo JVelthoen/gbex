@@ -26,8 +26,8 @@ first_guess <- function(y){
 get_boosting_df <- function(data,theta,alpha=0){
   if(nrow(theta) != nrow(data)) stop("Number of rows of data and theta are not equal.")
 
-  divergence <- compute_divergence(data$y,theta,alpha)
-  boosting_df <- cbind(data,divergence)
+  divergence = compute_divergence(data$y,theta,alpha)
+  boosting_df = cbind(data,divergence)
 
   return(boosting_df)
 }
@@ -43,25 +43,25 @@ get_boosting_df <- function(data,theta,alpha=0){
 #' @return A data frame GPD parameters calculated power divergence and derivatives of power divergence
 #' @export
 compute_divergence <- function(y,theta,alpha){
-  divergence_input <- cbind(theta,y)
+  divergence_input = cbind(theta,y)
   if(alpha == 0){ # Compute everything for maximum likelihood
-    divergence_input_ML <- divergence_input
-    dev=apply(divergence_input_ML,1,GP_dev)
-    r_s=apply(divergence_input_ML,1,GP_dev_diff_s)
-    r_g=apply(divergence_input_ML,1,GP_dev_diff_g)
-    r2_s=apply(divergence_input_ML,1,GP_dev_diff2_s)
-    r2_g=apply(divergence_input_ML,1,GP_dev_diff2_g)
+    divergence_input_ML = divergence_input
+    dev = apply(divergence_input_ML,1,GP_dev)
+    r_s = apply(divergence_input_ML,1,GP_dev_diff_s)
+    r_g = apply(divergence_input_ML,1,GP_dev_diff_g)
+    r2_s = apply(divergence_input_ML,1,GP_dev_diff2_s)
+    r2_g = apply(divergence_input_ML,1,GP_dev_diff2_g)
   } else{ # Compute everything with power divergence
     A = apply(divergence_input,1,A_func)
     B = apply(divergence_input,1,B_func)
-    divergence_input_PD <- cbind(divergence_input,A,B)
+    divergence_input_PD = cbind(divergence_input,A,B)
 
-    dev=apply(divergence_input,1,function(x) PD_dev(x[1:3],x[4],x[5],alpha))
-    r_s=apply(divergence_input,1,function(x) PD_dev_diff_s(x[1:3],x[4],x[5],alpha))
-    r_g=apply(divergence_input,1,function(x) PD_dev_diff_g(x[1:3],x[4],x[5],alpha))
-    r2_s=apply(divergence_input,1,function(x) PD_dev_diff2_s(x[1:3],x[4],x[5],alpha))
-    r2_g=apply(divergence_input,1,function(x) PD_dev_diff2_g(x[1:3],x[4],x[5],alpha))
+    dev = apply(divergence_input,1,function(x) PD_dev(x[1:3],x[4],x[5],alpha))
+    r_s = apply(divergence_input,1,function(x) PD_dev_diff_s(x[1:3],x[4],x[5],alpha))
+    r_g = apply(divergence_input,1,function(x) PD_dev_diff_g(x[1:3],x[4],x[5],alpha))
+    r2_s = apply(divergence_input,1,function(x) PD_dev_diff2_s(x[1:3],x[4],x[5],alpha))
+    r2_g = apply(divergence_input,1,function(x) PD_dev_diff2_g(x[1:3],x[4],x[5],alpha))
   }
-  output  = data.frame(s=theta$s,g=theta$g,dev=dev,r_s=r_s, r_g=r_g, r2_s=r2_s, r2_g=r2_g)
+  output = data.frame(s=theta$s,g=theta$g,dev=dev,r_s=r_s, r_g=r_g, r2_s=r2_s, r2_g=r2_g)
   return(output)
 }

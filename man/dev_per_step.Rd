@@ -2,20 +2,20 @@
 % Please edit documentation in R/1. gradient_boosting_functions.R
 \name{dev_per_step}
 \alias{dev_per_step}
-\title{Compute the deviance at each iteration for a given dataset (CURRENTLY only working for likelihood)}
+\title{Deviance per step}
 \usage{
-dev_per_step(object, X = NULL, y = NULL)
+dev_per_step(object, y = NULL, X = NULL)
 }
 \arguments{
 \item{object}{A fitted gbex object}
 
-\item{X}{A dataframe with the right column names}
-
 \item{y}{A vector of observations}
+
+\item{X}{A dataframe with the right column names}
 }
 \value{
-A vector with the deviance at iteration
+A vector with the deviance at each step
 }
 \description{
-Compute the deviance at each iteration for a given dataset (CURRENTLY only working for likelihood)
+Compute the deviance per boosting step
 }

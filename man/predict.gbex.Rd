@@ -2,18 +2,20 @@
 % Please edit documentation in R/1. gradient_boosting_functions.R
 \name{predict.gbex}
 \alias{predict.gbex}
-\title{Predict function for gbex object}
+\title{Predict function for gbex}
 \usage{
-\method{predict}{gbex}(object, newdata = NULL)
+\method{predict}{gbex}(object, newdata = NULL, what = "par")
 }
 \arguments{
 \item{object}{A fitted gbex object}
 
 \item{newdata}{A data frame with covariates for which to predict the sigma and gamma parameter}
+
+\item{what}{Character indicating what to predict, currently only "par"}
 }
 \value{
 A data.frame object with the estimated sigma and gamma parameters
 }
 \description{
-Predict function for gbex object
+Predict function for gbex
 }
