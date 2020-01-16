@@ -4,16 +4,17 @@
 \alias{CV_grid_search}
 \title{Optimize the model by doing a gridsearch over a parameter using cross validation}
 \usage{
-CV_grid_search(X, y, par, grid_values, num_folds = 4, par_fixed)
+CV_grid_search(X, y, par = NULL, grid_values = NULL, num_folds = 4,
+  par_fixed)
 }
 \arguments{
 \item{X}{data.frame of covariates}
 
 \item{y}{vector of response}
 
-\item{par}{character name of the parameter to adjust}
+\item{par}{character name of the parameter to adjust, if it is NULL cross validation is performed using parameters in par_fixed}
 
-\item{grid_values}{numeric vector of values to perform gridsearch over}
+\item{grid_values}{numeric vector of values to perform gridsearch ove, if it is NULL cross validation is performed using parameters in par_fixed}
 
 \item{num_folds}{integer number of folds used for cross validation}
 

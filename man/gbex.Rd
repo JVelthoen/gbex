@@ -2,7 +2,7 @@
 % Please edit documentation in R/1. gradient_boosting_functions.R
 \name{gbex}
 \alias{gbex}
-\title{Estimate scale and shape for the GPD using gradient boosting}
+\title{GPD boosting}
 \usage{
 gbex(y, X, B = 180, lambda = c(0.025, 0.0025), depth = c(2, 2),
   min_leaf_size = c(30, 30), sf = 0.5, alpha = 0, silent = F)
@@ -25,8 +25,16 @@ gbex(y, X, B = 180, lambda = c(0.025, 0.0025), depth = c(2, 2),
 \item{silent}{boolean indicating whether progress during fitting procedure should be printed.}
 }
 \value{
-A list with the estimates of scale and shape the deviance for each optimaization step a list of trees and a data frame with all parameters of the final optimization step.
+gbex returns an object of class "gbex" which contains the following components:
+\item{theta}{Data frame with the estimated gamma and sigma parameter for each observation}
+\item{dev}{Numeric with deviance of model}
+\item{trees_sigma}{List with gradient_tree objects for sigma}
+\item{trees_gamma}{List with gradient_tree objects for gamma}
+\item{lambda}{Numeric with the learining rate of sigma and gamma}
+\item{B}{Numeric with number of trees}
+\item{depth}{Numeric with maximum tree depth for sigma and gamma}
+\item{alpha}{Power divergence parameter used}
 }
 \description{
-Estimate scale and shape for the GPD using gradient boosting
+Estimate the Generalized Pareto distribution conditional on covariates using a boosting procedure.
 }
