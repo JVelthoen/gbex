@@ -24,48 +24,48 @@ gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),
                  depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,
                  alpha = 0,silent=F){
   if(!is.data.frame(X)) X = data.frame(X=X)
-  n <- length(y)
-  data <- cbind(y,X)
+  n = length(y)
+  data = cbind(y,X)
   # First parameters are the unconditional tail parameters
-  theta_init <- first_guess(y)
+  theta_init = first_guess(y)
 
   # Create a data.frame used for the boosting procedure with data, parameters, first and second derivatives
-  boosting_df <- get_boosting_df(data,theta_init,alpha)
+  boosting_df = get_boosting_df(data,theta_init,alpha)
 
   # Save the results of the boosting steps
   # TREES contains the boosting trees
   # dev contains the deviance for each iteration
-  trees_sigma <- trees_gamma <- list()
+  trees_sigma = trees_gamma = list()
   dev=rep(mean(boosting_df$dev),B+1)
   for (b in 1:B){
     # Take a subsample from the entire data.frame
-    tree_df <- boosting_df[sample(1:n,sf*n,replace=F),]
+    tree_df = boosting_df[sample(1:n,sf*n,replace=F),]
 
     # Fit gradient trees for sigma and gamma parameter
-    tree_sigma <- gradient_tree_sigma(tree_df,depth[1],min_leaf_size[1])
-    tree_gamma <- gradient_tree_gamma(tree_df,depth[2],min_leaf_size[2])
+    tree_sigma = gradient_tree_sigma(tree_df,depth[1],min_leaf_size[1])
+    tree_gamma = gradient_tree_gamma(tree_df,depth[2],min_leaf_size[2])
 
     # Use the estimated trees to update the parameters
-    theta_hat <- update_parameters(tree_sigma,tree_gamma,boosting_df,lambda)
+    theta_hat = update_parameters(tree_sigma,tree_gamma,boosting_df,lambda)
 
     # create a new data.frame with updated derivatives
-    boosting_df <- get_boosting_df(data,theta_hat,alpha)
+    boosting_df = get_boosting_df(data,theta_hat,alpha)
 
     # Save the estimated trees and the deviance
-    trees_sigma[[b]] <- tree_sigma
-    trees_gamma[[b]] <- tree_gamma
-    dev[b+1] <- mean(boosting_df$dev)
+    trees_sigma[[b]] = tree_sigma
+    trees_gamma[[b]] = tree_gamma
+    dev[b+1] = mean(boosting_df$dev)
 
     if(!silent & b %in% round(((1:10)*(B/10)))){
       cat(paste0(round(b/B,1)*100,"% of trees fitted\n"))
     }
   }
 
-  output <- list(theta = theta_hat, dev = dev,
+  output = list(theta = theta_hat, dev = dev,
                  trees_sigma = trees_sigma, trees_gamma = trees_gamma,
                  theta_init= theta_init[1,],
                  lambda=lambda,B=B,depth=depth,alpha=alpha)
-  class(output) <- "gbex"
+  class(output) = "gbex"
   return(output)
 }
 
@@ -74,20 +74,22 @@ gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),
 #'
 #' @param object A fitted gbex object
 #' @param newdata A data frame with covariates for which to predict the sigma and gamma parameter
+#' @param what Character indicating what to predict, currently only "par"
 #' @return A data.frame object with the estimated sigma and gamma parameters
 #' @export
-predict.gbex <- function(object, newdata = NULL){
+predict.gbex <- function(object, newdata = NULL,what="par"){
   if(is.null(newdata)){
     theta = object$theta
   } else{
-    sigma_updates <- lapply(object$trees_sigma,predict,newdata=newdata)
-    gamma_updates <- lapply(object$trees_gamma,predict,newdata=newdata)
+    sigma_updates = lapply(object$trees_sigma,predict,newdata=newdata)
+    gamma_updates = lapply(object$trees_gamma,predict,newdata=newdata)
 
-    theta <- data.frame(s= object$theta_init$s - object$lambda[1]*Reduce("+",sigma_updates),
+    theta = data.frame(s= object$theta_init$s - object$lambda[1]*Reduce("+",sigma_updates),
                         g= object$theta_init$g - object$lambda[2]*Reduce("+",gamma_updates))
   }
   return(theta)
 }
+
 
 #' Deviance per step
 #'
@@ -108,7 +110,7 @@ dev_per_step <- function(object,y=NULL,X=NULL){
     sigma_per_step = object$theta_init$s - object$lambda[1]*apply(sigma_updates,1,cumsum)
     gamma_per_step = object$theta_init$g - object$lambda[2]*apply(gamma_updates,1,cumsum)
 
-    divergence_input <- cbind(as.vector(t(sigma_per_step)),as.vector(t(gamma_per_step)),rep(y,object$B+1))
+    divergence_input = cbind(as.vector(t(sigma_per_step)),as.vector(t(gamma_per_step)),rep(y,object$B+1))
     if(object$alpha == 0){
       dev_vec = apply(divergence_input,1,GP_dev)
       dev_matrix = matrix(dev_vec,ncol=nrow(sigma_per_step))
@@ -119,3 +121,42 @@ dev_per_step <- function(object,y=NULL,X=NULL){
   }
 }
 
+par_grid = list(depth = list(c(1,1),c(2,2),c(3,3)),
+                min_leaf_size = list(c(25,25),c(50,50),c(75,75)),
+                sf = list(0.25,0.5,0.75))
+
+CV_tune_hyper_parameters <- function(y,X,num_folds = 8,lambda_high,lambda_low,Bmax,par_fixed = NULL,par_grid = NULL){
+  if(is.null(par_fixed)) par_fixed = list(depth=c(1,1),sf=0.5,min_leaf_size=rep(0.1*length(y),2),silent=F,alpha=0)
+  par_fixed[["B"]] <- Bmax
+
+  if(!is.null(par_grid)){
+    par_fixed[["lambda"]] <- lambda_high
+    B_search = CV_grid_search(y,X,NULL,NULL,num_folds,par_fixed)
+    par_fixed[["B"]] = B_search$par
+
+    if("depth" %in% names(par_grid)){
+      par_fixed[["depth"]] = NULL
+      depth_search = CV_grid_search(y,X,"depth",par_grid[["depth"]],num_folds,par_fixed)
+      par_fixed[["depth"]] = depth_search$par
+    }
+
+    if("min_leaf_size" %in% names(par_grid)){
+      par_fixed[["min_leaf_size"]] = NULL
+      min_leaf_size_search = CV_grid_search(y,X,"min_leaf_size",par_grid[["min_leaf_size"]],num_folds,par_fixed)
+      par_fixed[["min_leaf_size"]] = min_leaf_size_search$par
+    }
+
+    if("sf" %in% names(par_grid)){
+      par_fixed[["sf"]] = NULL
+      sf_search = CV_grid_search(y,X,"sf",par_grid[["sf"]],num_folds,par_fixed)
+      par_fixed[["sf"]] = sf_search$par
+    }
+  }
+
+  par_fixed[["lambda"]] <- lambda_low
+  par_fixed[["B"]] <- Bmax
+  B_search = CV_grid_search(y,X,NULL,NULL,num_folds,par_fixed)
+  par_fixed[["B"]] = B_search$par
+
+  return(par_fixed)
+}
