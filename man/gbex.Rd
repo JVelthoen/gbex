@@ -5,7 +5,9 @@
 \title{GPD boosting}
 \usage{
 gbex(y, X, B = 180, lambda = c(0.025, 0.0025), depth = c(2, 2),
-  min_leaf_size = c(30, 30), sf = 0.5, alpha = 0, silent = F)
+  min_leaf_size = c(30, 30), sf = 0.5, alpha = 0, silent = F,
+  grid_search = F, par_grid = NULL, lambda_grid = NULL,
+  num_folds = 5)
 }
 \arguments{
 \item{y}{Response variables (vector of length n)}
@@ -23,6 +25,14 @@ gbex(y, X, B = 180, lambda = c(0.025, 0.0025), depth = c(2, 2),
 \item{alpha}{the power for power divergence (default alpha = 0 meaning maximum likelihood is used)}
 
 \item{silent}{boolean indicating whether progress during fitting procedure should be printed.}
+
+\item{grid_search}{Boolean indicating if tuning parameters need to be optimized}
+
+\item{par_grid}{Named list with a grid for each parameter to tune (Only when grid_search = True)}
+
+\item{lambda_grid}{An extra lambda parameter used for grid_search (Only when grid_search = True)}
+
+\item{num_folds}{Number of folds used for grid search Default = 5 (Only when grid_search = True)}
 }
 \value{
 gbex returns an object of class "gbex" which contains the following components:
@@ -37,4 +47,17 @@ gbex returns an object of class "gbex" which contains the following components:
 }
 \description{
 Estimate the Generalized Pareto distribution conditional on covariates using a boosting procedure.
+}
+\details{
+The cross validation procedure is currently implemented for depth, min_leaf_size, sf and B.
+The initial starting parameters are the ones that are supplied to the function. Then the procedure is as follows:
+\itemize{
+ \item{Find the optimal B with initial parameters and lambda_grid}
+ \item{Find optimal depth over the grid of depth using the chosen B and lambda_grid}
+ \item{Find optimal min_leaf_size over the grid of min_leaf_size using the chosen B and lambda_grid}
+ \item{Find optimal sf over the grid of sf using the chosen B and lambda_grid}
+ \item{Find optimal B with new chosen parameters and lambda}
+}
+Note that if a grid for a parameter is not supplied the step for this parameter is skipped.
+For B no grid needs to be specified only a maximum initial value.
 }
