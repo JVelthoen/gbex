@@ -36,7 +36,7 @@ get_data2 <- function(n,d){
 
   # parameter vectors
   s=apply(X,1,fun_s)
-  g=apply(X,1,fun_g)
+  g=apply(X,1,fun_g,beta=1/5)
 
   # generating GPD random observations
   y= s*(runif(n)^(-g)-1)/g

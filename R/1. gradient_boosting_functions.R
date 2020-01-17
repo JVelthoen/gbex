@@ -10,6 +10,10 @@
 #' @param sf  sample fraction used for fitting the trees
 #' @param alpha the power for power divergence (default alpha = 0 meaning maximum likelihood is used)
 #' @param silent boolean indicating whether progress during fitting procedure should be printed.
+#' @param grid_search Boolean indicating if tuning parameters need to be optimized
+#' @param par_grid Named list with a grid for each parameter to tune (Only when grid_search = True)
+#' @param lambda_grid An extra lambda parameter used for grid_search (Only when grid_search = True)
+#' @param num_folds Number of folds used for grid search Default = 5 (Only when grid_search = True)
 #' @return gbex returns an object of class "gbex" which contains the following components:
 #' \item{theta}{Data frame with the estimated gamma and sigma parameter for each observation}
 #' \item{dev}{Numeric with deviance of model}
@@ -19,11 +23,35 @@
 #' \item{B}{Numeric with number of trees}
 #' \item{depth}{Numeric with maximum tree depth for sigma and gamma}
 #' \item{alpha}{Power divergence parameter used}
+#' @details The cross validation procedure is currently implemented for depth, min_leaf_size, sf and B.
+#' The initial starting parameters are the ones that are supplied to the function. Then the procedure is as follows:
+#' \itemize{
+#'  \item{Find the optimal B with initial parameters and lambda_grid}
+#'  \item{Find optimal depth over the grid of depth using the chosen B and lambda_grid}
+#'  \item{Find optimal min_leaf_size over the grid of min_leaf_size using the chosen B and lambda_grid}
+#'  \item{Find optimal sf over the grid of sf using the chosen B and lambda_grid}
+#'  \item{Find optimal B with new chosen parameters and lambda}
+#' }
+#' Note that if a grid for a parameter is not supplied the step for this parameter is skipped.
+#' For B no grid needs to be specified only a maximum initial value.
 #' @export
 gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),
                  depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,
-                 alpha = 0,silent=F){
+                 alpha = 0,silent=F,
+                 grid_search = F, par_grid = NULL, lambda_grid=NULL, num_folds = 5){
   if(!is.data.frame(X)) X = data.frame(X=X)
+  if(grid_search){
+    par_fixed = list(depth=depth,min_leaf_size=min_leaf_size,sf=sf,alpha=alpha,silent=silent)
+    if(is.null(lambda_grid)) lambda_grid = lambda
+    Bmax = B
+    par_opt = CV_tuning_parameters(y,X,num_folds,lambda_grid,lambda,Bmax,par_fixed,par_grid)
+    B = par_opt$B
+    depth = par_opt$depth
+    min_leaf_size = par_opt$min_leaf_size
+    sf = par_opt$sf
+  }
+
+  if(!silent) cat("Fitting Boosting Trees for Model:\n")
   n = length(y)
   data = cbind(y,X)
   # First parameters are the unconditional tail parameters
@@ -121,42 +149,68 @@ dev_per_step <- function(object,y=NULL,X=NULL){
   }
 }
 
-par_grid = list(depth = list(c(1,1),c(2,2),c(3,3)),
-                min_leaf_size = list(c(25,25),c(50,50),c(75,75)),
-                sf = list(0.25,0.5,0.75))
 
-CV_tune_hyper_parameters <- function(y,X,num_folds = 8,lambda_high,lambda_low,Bmax,par_fixed = NULL,par_grid = NULL){
-  if(is.null(par_fixed)) par_fixed = list(depth=c(1,1),sf=0.5,min_leaf_size=rep(0.1*length(y),2),silent=F,alpha=0)
+#' Tuning parameters
+#'
+#' Obtain optimal tuning parameters for gbex by performing a grid search.
+#'
+#' @param y Numeric vector of observations
+#' @param X Data frame with the right column names
+#' @param num_folds Integer for the number of folds in the cross validation
+#' @param lambda_grid Numeric with learning rate for sigma and gamma used for doing the grid search
+#' @param lambda Numeric with learning rate for sigma and gamma used for final model
+#' @param Bmax Numeric indicating the maximum number of trees
+#' @param par_fixed Named list with for each parameter an initial value
+#' @param par_grid Named list with for each parameter a grid to optimize over
+#' @return A named list with the optimal parameters
+#' @details The function uses two lambda parameters.
+#' The parameters lambda_grid should be larger than lambda and is used to perform the gridsearch as less trees need to be fitted.
+#' @export
+CV_tuning_parameters <- function(y,X,num_folds = 8,lambda_grid,lambda,Bmax,par_fixed,par_grid = NULL){
+  if(par_fixed$silent == F){
+    par_fixed$silent = T
+    silent = F
+  } else{
+    silent =T
+  }
+
+  if(!silent) cat("Cross Validation procedure:\n")
+
   par_fixed[["B"]] <- Bmax
 
   if(!is.null(par_grid)){
-    par_fixed[["lambda"]] <- lambda_high
+    par_fixed[["lambda"]] <- lambda_grid
     B_search = CV_grid_search(y,X,NULL,NULL,num_folds,par_fixed)
     par_fixed[["B"]] = B_search$par
+    if(!silent) cat(paste0("B for lambda_grid set to: ",B_search$par,".\n"))
 
     if("depth" %in% names(par_grid)){
       par_fixed[["depth"]] = NULL
       depth_search = CV_grid_search(y,X,"depth",par_grid[["depth"]],num_folds,par_fixed)
       par_fixed[["depth"]] = depth_search$par
+      if(!silent) cat(paste0("depth set to: c(",paste0(depth_search$par,collapse=", "),").\n"))
     }
 
     if("min_leaf_size" %in% names(par_grid)){
       par_fixed[["min_leaf_size"]] = NULL
       min_leaf_size_search = CV_grid_search(y,X,"min_leaf_size",par_grid[["min_leaf_size"]],num_folds,par_fixed)
       par_fixed[["min_leaf_size"]] = min_leaf_size_search$par
+      if(!silent) cat(paste0("min_leaf_size set to: c(",paste0(min_leaf_size_search$par,collapse=", "),").\n"))
     }
 
     if("sf" %in% names(par_grid)){
       par_fixed[["sf"]] = NULL
       sf_search = CV_grid_search(y,X,"sf",par_grid[["sf"]],num_folds,par_fixed)
       par_fixed[["sf"]] = sf_search$par
+      if(!silent) cat(paste0("sf set to: ",sf_search$par,".\n"))
     }
   }
 
-  par_fixed[["lambda"]] <- lambda_low
+  par_fixed[["lambda"]] <- lambda
   par_fixed[["B"]] <- Bmax
   B_search = CV_grid_search(y,X,NULL,NULL,num_folds,par_fixed)
   par_fixed[["B"]] = B_search$par
+  if(!silent) cat(paste0("B for lambda set to: ",B_search$par,".\n"))
 
   return(par_fixed)
 }

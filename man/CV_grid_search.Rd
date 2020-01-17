@@ -4,7 +4,8 @@
 \alias{CV_grid_search}
 \title{Cross Validation Grid Search}
 \usage{
-CV_grid_search(y, X, par_name, grid, num_folds = 4, par_fixed = list())
+CV_grid_search(y, X, par_name = NULL, grid = NULL, num_folds = 4,
+  par_fixed = list())
 }
 \arguments{
 \item{y}{Numeric vector of response}
