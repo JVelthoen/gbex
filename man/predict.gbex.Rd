@@ -4,14 +4,19 @@
 \alias{predict.gbex}
 \title{Predict function for gbex}
 \usage{
-\method{predict}{gbex}(object, newdata = NULL, what = "par")
+\method{predict}{gbex}(object, newdata = NULL, probs = NULL,
+  what = "par", Blim = NULL)
 }
 \arguments{
 \item{object}{A fitted gbex object}
 
 \item{newdata}{A data frame with covariates for which to predict the sigma and gamma parameter}
 
+\item{probs}{A vector of probabilities for which to estimate quantiles (needs par="quant")}
+
 \item{what}{Character indicating what to predict, currently only "par"}
+
+\item{Blim}{Integer number indicating how many trees to use of the fitted object only used for newdata}
 }
 \value{
 A data.frame object with the estimated sigma and gamma parameters

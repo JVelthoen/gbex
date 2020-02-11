@@ -63,24 +63,24 @@ gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),
   # Save the results of the boosting steps
   # TREES contains the boosting trees
   # dev contains the deviance for each iteration
-  trees_sigma = trees_gamma = list()
+  trees_beta = trees_gamma = list()
   dev=rep(mean(boosting_df$dev),B+1)
   for (b in 1:B){
     # Take a subsample from the entire data.frame
     tree_df = boosting_df[sample(1:n,sf*n,replace=F),]
 
     # Fit gradient trees for sigma and gamma parameter
-    tree_sigma = gradient_tree_sigma(tree_df,depth[1],min_leaf_size[1])
+    tree_beta = gradient_tree_beta(tree_df,depth[1],min_leaf_size[1])
     tree_gamma = gradient_tree_gamma(tree_df,depth[2],min_leaf_size[2])
 
     # Use the estimated trees to update the parameters
-    theta_hat = update_parameters(tree_sigma,tree_gamma,boosting_df,lambda)
+    theta_hat = update_parameters(tree_beta,tree_gamma,boosting_df,lambda)
 
     # create a new data.frame with updated derivatives
     boosting_df = get_boosting_df(data,theta_hat,alpha)
 
     # Save the estimated trees and the deviance
-    trees_sigma[[b]] = tree_sigma
+    trees_beta[[b]] = tree_beta
     trees_gamma[[b]] = tree_gamma
     dev[b+1] = mean(boosting_df$dev)
 
@@ -90,7 +90,7 @@ gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),
   }
 
   output = list(theta = theta_hat, dev = dev,
-                 trees_sigma = trees_sigma, trees_gamma = trees_gamma,
+                 trees_beta = trees_beta, trees_gamma = trees_gamma,
                  theta_init= theta_init[1,],
                  lambda=lambda,B=B,depth=depth,alpha=alpha)
   class(output) = "gbex"
@@ -102,20 +102,46 @@ gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),
 #'
 #' @param object A fitted gbex object
 #' @param newdata A data frame with covariates for which to predict the sigma and gamma parameter
+#' @param probs A vector of probabilities for which to estimate quantiles (needs par="quant")
 #' @param what Character indicating what to predict, currently only "par"
+#' @param Blim Integer number indicating how many trees to use of the fitted object only used for newdata
 #' @return A data.frame object with the estimated sigma and gamma parameters
 #' @export
-predict.gbex <- function(object, newdata = NULL,what="par"){
-  if(is.null(newdata)){
-    theta = object$theta
+predict.gbex <- function(object, newdata = NULL,probs = NULL,what="par",Blim=NULL){
+  if(is.null(Blim)){
+    Blim = object$B
+  } else if(Blim > object$B){
+    Blim = object$B
   } else{
-    sigma_updates = lapply(object$trees_sigma,predict,newdata=newdata)
-    gamma_updates = lapply(object$trees_gamma,predict,newdata=newdata)
-
-    theta = data.frame(s= object$theta_init$s - object$lambda[1]*Reduce("+",sigma_updates),
-                        g= object$theta_init$g - object$lambda[2]*Reduce("+",gamma_updates))
+    Blim = round(Blim)
   }
-  return(theta)
+
+  if(Blim == object$B){
+    theta = object$theta
+    theta$s <- exp(theta$b)
+    theta <- theta[c("s","g")]
+  } else if(!is.null(newdata)){
+    beta_updates = lapply(object$trees_beta,predict,newdata=newdata)[1:Blim]
+    gamma_updates = lapply(object$trees_gamma,predict,newdata=newdata)[1:Blim]
+
+    theta = data.frame(s = exp(object$theta_init$b - object$lambda[1]*Reduce("+",beta_updates)),
+                       g= object$theta_init$g - object$lambda[2]*Reduce("+",gamma_updates))
+  } else{
+    stop("Blim can only be used when new data is provided")
+  }
+
+  if(what == "par"){
+    return(theta)
+  } else if(what == "quant"){
+    if(is.null(probs)){
+      warning("probs needs specification for quantile prediction, using probs = 0.99")
+      probs = 0.99
+    }
+      quant <- sapply(probs,function(p,s,g) (s/g) * ( (1-p)^(-g) - 1),s = theta$s,g = theta$g)
+      return(quant)
+  } else {
+    stop("This specification of par is not defined")
+  }
 }
 
 
@@ -132,16 +158,16 @@ dev_per_step <- function(object,y=NULL,X=NULL){
   if(is.null(X)){
     dev = object$dev
   } else{
-    sigma_updates = cbind(0,do.call('cbind',lapply(object$trees_sigma,predict,newdata=X)))
+    beta_updates = cbind(0,do.call('cbind',lapply(object$trees_beta,predict,newdata=X)))
     gamma_updates = cbind(0,do.call('cbind',lapply(object$trees_gamma,predict,newdata=X)))
 
-    sigma_per_step = object$theta_init$s - object$lambda[1]*apply(sigma_updates,1,cumsum)
+    beta_per_step = object$theta_init$b - object$lambda[1]*apply(beta_updates,1,cumsum)
     gamma_per_step = object$theta_init$g - object$lambda[2]*apply(gamma_updates,1,cumsum)
 
-    divergence_input = cbind(as.vector(t(sigma_per_step)),as.vector(t(gamma_per_step)),rep(y,object$B+1))
+    divergence_input = cbind(exp(as.vector(t(beta_per_step))),as.vector(t(gamma_per_step)),rep(y,object$B+1))
     if(object$alpha == 0){
       dev_vec = apply(divergence_input,1,GP_dev)
-      dev_matrix = matrix(dev_vec,ncol=nrow(sigma_per_step))
+      dev_matrix = matrix(dev_vec,ncol=nrow(beta_per_step))
       dev = apply(dev_matrix,2,mean)
     } else{
       stop("this is not implemented yet for power divergence")

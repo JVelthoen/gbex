@@ -19,3 +19,6 @@ A data frame GPD parameters calculated power divergence and derivatives of power
 \description{
 Computes the power divergence for the generalized pareto distribution together with the first and second derivatives.
 }
+\details{
+the sigma parameter is reparematerized as exp(beta) hence the output are the derivatives in terms of beta and gamma
+}

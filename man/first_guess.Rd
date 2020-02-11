@@ -16,5 +16,6 @@ Returning a data frame with in each of the length(y) rows the estimated paramete
 Make the first guess of GPD parameters
 }
 \details{
-Estimation is done based on maximum likelihood
+Estimation is done based on unconditional maximum likelihood.
+Where the density is reparameterized by beta = log(sigma).
 }
