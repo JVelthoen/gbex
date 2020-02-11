@@ -72,7 +72,6 @@ CV_single_fold <- function(fold,folds,data,args){
 #' @return A vector with integers corresponding to the fold
 #' @export
 divide_in_folds <- function(n,num_folds){
-  n = length(y)
   index_shuffled = sample(1:n)
   folds = cut(seq(1,length(index_shuffled)),breaks=num_folds,labels=F)[order(index_shuffled)]
   return(folds)
