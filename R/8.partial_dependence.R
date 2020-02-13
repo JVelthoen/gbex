@@ -1,0 +1,97 @@
+#' Calculate partial dependence for gbex object
+#'
+#' @param object A gbex object
+#' @return A list with for each variable the partial dependence of sigma and gamma with a
+#' numeric value corresponding to the variable.
+#' @export
+calc_PD <- function(object,var_name){
+  if(is.null(object$X)){
+    stop("Data is not saved into gbex object")
+  }
+
+  values = sort(unique(as.vector(object$X[[varname]])))
+
+  PD_per_tree = sapply(object$trees_beta,PD_tree,var_name=var_name,values=values)
+  sigma = exp(apply(PD_per_tree,1,sum)*object$lambda[1] + object$theta_init$b)
+
+  PD_per_tree = sapply(object$trees_gamma,PD_tree,var_name=var_name,values=values)
+  gamma = apply(PD_per_tree,1,sum)*object$lambda[2] + + object$theta_init$b
+
+  PD = list(sigma=sigma,gamma=gamma,values=values)
+  return(PD)
+}
+
+#' Make partial dependence plot for given variable
+#'
+#' @param object A gbex object
+#' @param variable variable name or index for which to make the dependence plot
+#' @return Two figures side by side with on the left the partial dependence plot for beta and on the right the partial dependence plot for gamma.
+#' @export
+partial_dependence <- function(object,variable){
+  if(is.null(variable)) stop("variable is not specified")
+  if(is.numeric(variable)){
+    if(ncol(object$X) < round(variable)){
+      stop("Column index out of range")
+    } else{
+      variable = colnames(object$X)[round(variable)]
+    }
+  } else if(is.null(object$X[[variable]])){
+    stop("Variable name is not recognized.")
+  }
+  PD = calc_PD(object,variable)
+  layout(matrix(c(1,2),ncol=2))
+  par(mai=rep(0.5, 4))
+  plot(PD$values,PD$beta,type="l",lwd=2,
+       xlab=variable,ylab="beta",main="Partial Dependence beta")
+  plot(PD$values,PD$gamma,type="l",lwd=2,
+       xlab=variable,ylab="gamma",main="Partial Dependence gamma")
+}
+
+
+#' Calculate partial dependence for gradient tree
+#'
+#' @param tree A gradient_tree object
+#' @param var_name variable name for which to calulate the partial dependence
+#' @param values Numeric vector with the values for var_name to calculate partial dependence
+#' @return A vector with partial dependence from the gradient tree for vector values
+#' @details The implementation makes use of the structure of the trees.
+#' By keeping the observations in each node the tree can be followed down one time for the computation.
+#' @export
+PD_tree <- function(tree,var_name,values){
+
+  tree_frame = tree$tree$frame
+  tree_splits = tree$tree$splits
+  update_table = tree$update_table
+
+  PD_df = tree_frame[c("var","n")]
+  PD_df$node_nr = as.numeric(rownames(tree_frame))
+  PD_df$node_value = rep(NA,nrow(PD_df))
+  PD_df$min = min(values)
+  PD_df$max = max(values)+0.1
+  split_counter = 0
+  for(row in 1:nrow(PD_df)){
+    if(PD_df$var[row] == "<leaf>"){
+      PD_df$node_value[row] = update_table$update[match(row,update_table$leaf)]
+    } else if(PD_df$var[row] == var_name){
+      split_counter = splits + 1
+      child_index = match(PD_df$node_nr[row]*2 + (0:1),PD_df$node_nr)
+      PD_df$n[child_index] = PD_df$n[row]
+      PD_df$min[child_index] = c(PD_df$min[row],tree_splits[split_counter,4])
+      PD_df$max[child_index] = c(tree_splits[split_counter,4],PD_df$max[row])
+    } else{
+      split_counter = splits + 1
+      child_index = match(PD_df$node_nr[row]*2 + (0:1),PD_df$node_nr)
+      PD_df$n[child_index] = PD_df$n[row]*(tree_frame$n[child_index]/tree_frame$n[row])
+      PD_df$min[child_index] = rep(PD_df$min[row],2)
+      PD_df$max[child_index] = rep(PD_df$max[row],2)
+    }
+  }
+
+  PD_tree = numeric(length(values))
+  for(row in which(PD_df$var == "<leaf>")){
+      index = which(values >= PD_df$min[row] & values < PD_df$max[row])
+      PD_tree[index] <- PD_tree[index] + PD_df$n[row]*PD_df$node_value[row]
+  }
+  PD_tree = PD_tree/tree_frame$n[1]
+  return(PD_tree)
+}
