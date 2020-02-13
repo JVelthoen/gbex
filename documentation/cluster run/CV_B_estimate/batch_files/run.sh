@@ -4,8 +4,8 @@
 # SBATCH PARAMS #
 #################
 QOS='short'
-STIME='01:00:00'
-MEM=500
+STIME='00:35:00'
+MEM=240
 
 ################
 # TRAIN PARAMS #

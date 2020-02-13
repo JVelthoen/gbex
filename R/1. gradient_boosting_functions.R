@@ -10,10 +10,7 @@
 #' @param sf  sample fraction used for fitting the trees
 #' @param alpha the power for power divergence (default alpha = 0 meaning maximum likelihood is used)
 #' @param silent boolean indicating whether progress during fitting procedure should be printed.
-#' @param grid_search Boolean indicating if tuning parameters need to be optimized
-#' @param par_grid Named list with a grid for each parameter to tune (Only when grid_search = True)
-#' @param lambda_grid An extra lambda parameter used for grid_search (Only when grid_search = True)
-#' @param num_folds Number of folds used for grid search Default = 5 (Only when grid_search = True)
+#' @param save_data boolean indicating whether data should be saved.
 #' @return gbex returns an object of class "gbex" which contains the following components:
 #' \item{theta}{Data frame with the estimated gamma and sigma parameter for each observation}
 #' \item{dev}{Numeric with deviance of model}
@@ -37,20 +34,8 @@
 #' @export
 gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),
                  depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,
-                 alpha = 0,silent=F,
-                 grid_search = F, par_grid = NULL, lambda_grid=NULL, num_folds = 5){
+                 alpha = 0,silent=F, save_data = T){
   if(!is.data.frame(X)) X = data.frame(X=X)
-  if(grid_search){
-    par_fixed = list(depth=depth,min_leaf_size=min_leaf_size,sf=sf,alpha=alpha,silent=silent)
-    if(is.null(lambda_grid)) lambda_grid = lambda
-    Bmax = B
-    par_opt = CV_tuning_parameters(y,X,num_folds,lambda_grid,lambda,Bmax,par_fixed,par_grid)
-    B = par_opt$B
-    depth = par_opt$depth
-    min_leaf_size = par_opt$min_leaf_size
-    sf = par_opt$sf
-  }
-
   if(!silent) cat("Fitting Boosting Trees for Model:\n")
   n = length(y)
   data = cbind(y,X)
@@ -89,10 +74,22 @@ gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),
     }
   }
 
+  func_call = match.call()
+
   output = list(theta = theta_hat, dev = dev,
                  trees_beta = trees_beta, trees_gamma = trees_gamma,
                  theta_init= theta_init[1,],
-                 lambda=lambda,B=B,depth=depth,alpha=alpha)
+                 lambda=lambda,B=B,depth=depth,alpha=alpha,
+                 call = func_call)
+
+  if(save_data){
+    output$y = y
+    output$X = X
+  } else{
+    output$y = NULL
+    output$X = NULL
+  }
+
   class(output) = "gbex"
   return(output)
 }
@@ -144,6 +141,24 @@ predict.gbex <- function(object, newdata = NULL,probs = NULL,what="par",Blim=NUL
   }
 }
 
+#' Print function for gbex
+#'
+#'
+#' @param object A fitted gbex object
+#' @return Prints the gbex object
+#' @export
+print.gbex <- function(object){
+  cat(paste0(deparse(object$call),"\n"))
+  cat("A gradient boosting model for extremes fitted by ")
+  if(object$alpha == 0){
+    cat("likelihood.\n")
+  } else{
+    cat(paste0("power divergence with alpha = ",object$alpha,".\n"))
+  }
+  cat(paste0(object$B," trees are fitted.\n"))
+  cat(paste0("Training error was equal to ",object$dev[length(object$dev)],".\n"))
+}
+
 
 #' Deviance per step
 #'
@@ -173,70 +188,4 @@ dev_per_step <- function(object,y=NULL,X=NULL){
       stop("this is not implemented yet for power divergence")
     }
   }
-}
-
-
-#' Tuning parameters
-#'
-#' Obtain optimal tuning parameters for gbex by performing a grid search.
-#'
-#' @param y Numeric vector of observations
-#' @param X Data frame with the right column names
-#' @param num_folds Integer for the number of folds in the cross validation
-#' @param lambda_grid Numeric with learning rate for sigma and gamma used for doing the grid search
-#' @param lambda Numeric with learning rate for sigma and gamma used for final model
-#' @param Bmax Numeric indicating the maximum number of trees
-#' @param par_fixed Named list with for each parameter an initial value
-#' @param par_grid Named list with for each parameter a grid to optimize over
-#' @return A named list with the optimal parameters
-#' @details The function uses two lambda parameters.
-#' The parameters lambda_grid should be larger than lambda and is used to perform the gridsearch as less trees need to be fitted.
-#' @export
-CV_tuning_parameters <- function(y,X,num_folds = 8,lambda_grid,lambda,Bmax,par_fixed,par_grid = NULL){
-  if(par_fixed$silent == F){
-    par_fixed$silent = T
-    silent = F
-  } else{
-    silent =T
-  }
-
-  if(!silent) cat("Cross Validation procedure:\n")
-
-  par_fixed[["B"]] <- Bmax
-
-  if(!is.null(par_grid)){
-    par_fixed[["lambda"]] <- lambda_grid
-    B_search = CV_grid_search(y,X,NULL,NULL,num_folds,par_fixed)
-    par_fixed[["B"]] = B_search$par
-    if(!silent) cat(paste0("B for lambda_grid set to: ",B_search$par,".\n"))
-
-    if("depth" %in% names(par_grid)){
-      par_fixed[["depth"]] = NULL
-      depth_search = CV_grid_search(y,X,"depth",par_grid[["depth"]],num_folds,par_fixed)
-      par_fixed[["depth"]] = depth_search$par
-      if(!silent) cat(paste0("depth set to: c(",paste0(depth_search$par,collapse=", "),").\n"))
-    }
-
-    if("min_leaf_size" %in% names(par_grid)){
-      par_fixed[["min_leaf_size"]] = NULL
-      min_leaf_size_search = CV_grid_search(y,X,"min_leaf_size",par_grid[["min_leaf_size"]],num_folds,par_fixed)
-      par_fixed[["min_leaf_size"]] = min_leaf_size_search$par
-      if(!silent) cat(paste0("min_leaf_size set to: c(",paste0(min_leaf_size_search$par,collapse=", "),").\n"))
-    }
-
-    if("sf" %in% names(par_grid)){
-      par_fixed[["sf"]] = NULL
-      sf_search = CV_grid_search(y,X,"sf",par_grid[["sf"]],num_folds,par_fixed)
-      par_fixed[["sf"]] = sf_search$par
-      if(!silent) cat(paste0("sf set to: ",sf_search$par,".\n"))
-    }
-  }
-
-  par_fixed[["lambda"]] <- lambda
-  par_fixed[["B"]] <- Bmax
-  B_search = CV_grid_search(y,X,NULL,NULL,num_folds,par_fixed)
-  par_fixed[["B"]] = B_search$par
-  if(!silent) cat(paste0("B for lambda set to: ",B_search$par,".\n"))
-
-  return(par_fixed)
 }
