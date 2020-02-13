@@ -40,6 +40,8 @@ The possible values of "par" are:
 \item{depth}{The depth of the trees grid is specified to be a list where each element contains the depth of beta and gamma}
 \item{sf}{Sample fraction of the trees, grid is specified to be a vector.}
 \item{min_leaf_size}{The minimum leafsize of a tree where grid is specified to be a list where each element contains the minimum leafsize of beta and gamma}
+\item{lambda_ratio}{The ratio between lambda_sigma/lambda_gamma}
 }
+
 In the ... the values of other tuning parameters are specified. If these are not supplied the standard values of gbex will be used
 }

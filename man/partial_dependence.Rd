@@ -12,7 +12,7 @@ partial_dependence(object, variable)
 \item{variable}{variable name or index for which to make the dependence plot}
 }
 \value{
-Two figures side by side with on the left the partial dependence plot for beta and on the right the partial dependence plot for gamma.
+Two figures side by side with on the left the partial dependence plot for sigma and on the right the partial dependence plot for gamma.
 }
 \description{
 Make partial dependence plot for given variable

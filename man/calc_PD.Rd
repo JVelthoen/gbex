@@ -10,7 +10,7 @@ calc_PD(object, var_name)
 \item{object}{A gbex object}
 }
 \value{
-A list with for each variable the partial dependence of beta and gamma with a
+A list with for each variable the partial dependence of sigma and gamma with a
 numeric value corresponding to the variable.
 }
 \description{

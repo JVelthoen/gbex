@@ -5,6 +5,8 @@
 #' @param y Response variables (vector of length n)
 #' @param X Covariate matrix (matrix of dimension (n x d))
 #' @param lambda learning rate for the scale and shape parameter
+#' @param lambda_ratio the ratio of the lambda_sigma/lambda_gamma (Use this together with lambda_scale, see details)
+#' @param lambda_scale equal to the suze of lambda_sigma  (Use this together with lambda_scale, see details)
 #' @param B Number of gradient boosting steps
 #' @param depth Maximum depth of the trees
 #' @param sf  sample fraction used for fitting the trees
@@ -20,25 +22,20 @@
 #' \item{B}{Numeric with number of trees}
 #' \item{depth}{Numeric with maximum tree depth for sigma and gamma}
 #' \item{alpha}{Power divergence parameter used}
-#' @details The cross validation procedure is currently implemented for depth, min_leaf_size, sf and B.
-#' The initial starting parameters are the ones that are supplied to the function. Then the procedure is as follows:
-#' \itemize{
-#'  \item{Find the optimal B with initial parameters and lambda_grid}
-#'  \item{Find optimal depth over the grid of depth using the chosen B and lambda_grid}
-#'  \item{Find optimal min_leaf_size over the grid of min_leaf_size using the chosen B and lambda_grid}
-#'  \item{Find optimal sf over the grid of sf using the chosen B and lambda_grid}
-#'  \item{Find optimal B with new chosen parameters and lambda}
-#' }
-#' Note that if a grid for a parameter is not supplied the step for this parameter is skipped.
-#' For B no grid needs to be specified only a maximum initial value.
+#' @details Instead of specifying the learning rates lambda for sigma and gamma seperately the ratio of the two can be specified together with the size of the first one.
+#' This can be done using lambda_ratio and lambda_scale. The used lambda is then given by lambda_scale*(1,1/lambda_ratio).
 #' @export
-gbex <- function(y,X,B=180,lambda=c(0.025,0.0025),
+gbex <- function(y,X,B=180,lambda=NULL,
+                 lambda_ratio = 15, lambda_scale = 0.01,
                  depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,
                  alpha = 0,silent=F, save_data = T){
   if(!is.data.frame(X)) X = data.frame(X=X)
   if(!silent) cat("Fitting Boosting Trees for Model:\n")
   n = length(y)
   data = cbind(y,X)
+  if(is.null(lambda)){
+    lambda = lambda_scale*c(1,1/lambda_ratio)
+  }
   # First parameters are the unconditional tail parameters
   theta_init = first_guess(y)
 
@@ -187,5 +184,26 @@ dev_per_step <- function(object,y=NULL,X=NULL){
     } else{
       stop("this is not implemented yet for power divergence")
     }
+  }
+  return(dev)
+}
+
+#' Trim trees from gbex object
+#'
+#' @param object A fitted gbex object
+#' @param B_new A new total number of trees
+#' @return A gbex object with B_new trees
+#' @export
+trim_trees <- function(object,B_new){
+  if(B_new >= object$B){
+    warning("B_new is larger than number of trees in object")
+    return(object)
+  } else{
+    object$B = B_new
+    object$dev = object$dev[1:(B_new + 1)]
+    object$trees_beta = object$trees_beta[1:B_new]
+    object$trees_gamma = object$trees_gamma[1:B_new]
+    object$theta = predict(object,newdata=object$X)
+    return(object)
   }
 }

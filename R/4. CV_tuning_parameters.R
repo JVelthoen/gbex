@@ -21,7 +21,9 @@
 #' \item{depth}{The depth of the trees grid is specified to be a list where each element contains the depth of beta and gamma}
 #' \item{sf}{Sample fraction of the trees, grid is specified to be a vector.}
 #' \item{min_leaf_size}{The minimum leafsize of a tree where grid is specified to be a list where each element contains the minimum leafsize of beta and gamma}
+#' \item{lambda_ratio}{The ratio between lambda_sigma/lambda_gamma}
 #' }
+#'
 #' In the ... the values of other tuning parameters are specified. If these are not supplied the standard values of gbex will be used
 #' @export
 CV_gbex <- function(y,X,num_folds,par,Bmax,grid=NULL,stratified=F,...){
@@ -33,9 +35,13 @@ CV_gbex <- function(y,X,num_folds,par,Bmax,grid=NULL,stratified=F,...){
     CV_result = CV_sf(y,X,num_folds,grid,Bmax,stratified,...)
   } else if(par == "min_leaf_size"){
     CV_result = CV_min_leaf_size(y,X,num_folds,grid,Bmax,stratified,...)
+  } else if(par == "lambda_ratio"){
+    CV_result = CV_lambda_ratio(y,X,num_folds,grid,Bmax,stratified,...)
   } else{
     stop("No cross validation gridserach defined for this parameter.")
   }
+  CV_result$call =  match.call()
+  CV_result$stratified = stratified
   return(CV_result)
 }
 
@@ -128,8 +134,9 @@ CV_depth <- function(y,X,num_folds,depth_list,Bmax,stratified,...){
   })
 
   dev = Reduce("+",dev_matrix_list)/num_folds
-  Bopt = apply(dev,2,function(dev) which(dev == min(dev))-1)
-  depth_opt = depth_list[[which(apply(dev,2,min) == min(dev))]]
+  index_opt = which(apply(dev,2,min) == min(dev))
+  B_opt = which(dev[,index_opt] == min(dev[,index_opt]))
+  depth_opt = depth_list[[index_opt]]
 
   output = list(par_CV = depth_opt, par = "depth", grid = depth_list,
                 grid_B = 0:Bmax,
@@ -145,7 +152,7 @@ CV_depth <- function(y,X,num_folds,depth_list,Bmax,stratified,...){
 #' @param X Data frame of covariates
 #' @param y Numeric vector of response
 #' @param num_folds the number of folds used to determine the optimal number of trees
-#' @param sf_vec A list with parameter values for depth
+#' @param sf_vec A vector with parameter values for sample fraction
 #' @param Bmax maximum number of trees used for finding the optimal
 #' @param stratified indicate whether stratified sampling should be used
 #' @param ... Additional arguments supplied to gbex function
@@ -173,7 +180,7 @@ CV_sf <- function(y,X,num_folds,sf_vec,Bmax,stratified,...){
   dev = Reduce("+",dev_matrix_list)/num_folds
   index_opt = which(apply(dev,2,min) == min(dev))
   B_opt = which(dev[,index_opt] == min(dev[,index_opt]))
-  sf_opt = depth[index_opt,Bopt]
+  sf_opt = sf_vec[index_opt]
 
   output = list(par_CV = sf_opt, par = "sf", grid = sf_vec,
                 grid_B = 0:Bmax,
@@ -188,7 +195,7 @@ CV_sf <- function(y,X,num_folds,sf_vec,Bmax,stratified,...){
 #' @param X Data frame of covariates
 #' @param y Numeric vector of response
 #' @param num_folds the number of folds used to determine the optimal number of trees
-#' @param sf_vec A list with parameter values for depth
+#' @param min_leaf_size_list A list with parameter values for minimum leaf size
 #' @param Bmax maximum number of trees used for finding the optimal
 #' @param stratified indicate whether stratified sampling should be used
 #' @param ... Additional arguments supplied to gbex function
@@ -205,7 +212,7 @@ CV_min_leaf_size <- function(y,X,num_folds,min_leaf_size_list,Bmax,stratified,..
     Xtest = X[folds==fold,]
 
     dev_matrix <- sapply(min_leaf_size_list,function(min_leaf_size){
-      arguments_gbex = c(arguments,list(y=ytrain,X=Xtrain,B=Bmax,depth=depth))
+      arguments_gbex = c(arguments,list(y=ytrain,X=Xtrain,B=Bmax,min_leaf_size=min_leaf_size))
       fit = do.call(gbex,arguments_gbex)
       dev = dev_per_step(fit,y=ytest,X=Xtest)
       return(dev)
@@ -216,9 +223,52 @@ CV_min_leaf_size <- function(y,X,num_folds,min_leaf_size_list,Bmax,stratified,..
   dev = Reduce("+",dev_matrix_list)/num_folds
   index_opt = which(apply(dev,2,min) == min(dev))
   B_opt = which(dev[,index_opt] == min(dev[,index_opt]))
-  min_leaf_size_opt = depth[index_opt,Bopt]
+  min_leaf_size_opt = min_leaf_size_list[[index_opt]]
 
   output = list(par_CV = min_leaf_size_opt, par = "min_leaf_size", grid = min_leaf_size_list,
+                grid_B = 0:Bmax,
+                dev_all = dev, dev_folds = dev_matrix_list,
+                num_folds = num_folds, folds=folds, y=y)
+  class(output) = "CV_gbex"
+  return(output)
+}
+
+#' Cross validation for the ratio of lambda_sigma and lambda_gamma
+#'
+#' @param X Data frame of covariates
+#' @param y Numeric vector of response
+#' @param num_folds the number of folds used to determine the optimal number of trees
+#' @param lambda_vec A list with parameter values for lambda_ratio
+#' @param Bmax maximum number of trees used for finding the optimal
+#' @param stratified indicate whether stratified sampling should be used
+#' @param ... Additional arguments supplied to gbex function
+#' @return A CV_gbex object
+#' @export
+CV_lambda_ratio <- function(y,X,num_folds,lambda_vec,Bmax,stratified,...){
+  arguments = list(...)
+  folds = divide_in_folds(y,num_folds,stratified)
+
+  dev_matrix_list = lapply(1:num_folds,function(fold){
+    ytrain = y[folds!=fold]
+    ytest = y[folds==fold]
+    Xtrain = X[folds!=fold,]
+    Xtest = X[folds==fold,]
+
+    dev_matrix <- sapply(lambda_vec,function(lambda_ratio){
+      arguments_gbex = c(arguments,list(y=ytrain,X=Xtrain,B=Bmax,lambda_ratio=lambda_ratio))
+      fit = do.call(gbex,arguments_gbex)
+      dev = dev_per_step(fit,y=ytest,X=Xtest)
+      return(dev)
+    })
+    return(dev_matrix)
+  })
+
+  dev = Reduce("+",dev_matrix_list)/num_folds
+  index_opt = which(apply(dev,2,min) == min(dev))
+  B_opt = which(dev[,index_opt] == min(dev[,index_opt]))
+  lambda_ratio_opt = lambda_vec[index_opt]
+
+  output = list(par_CV = lambda_ratio_opt, par = "lambda_ratio", grid = lambda_vec,
                 grid_B = 0:Bmax,
                 dev_all = dev, dev_folds = dev_matrix_list,
                 num_folds = num_folds, folds=folds, y=y)
