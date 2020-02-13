@@ -4,9 +4,9 @@
 \alias{gbex}
 \title{GPD boosting}
 \usage{
-gbex(y, X, B = 180, lambda = c(0.025, 0.0025), depth = c(2, 2),
-  min_leaf_size = c(30, 30), sf = 0.5, alpha = 0, silent = F,
-  save_data = T)
+gbex(y, X, B = 180, lambda = NULL, lambda_ratio = 15,
+  lambda_scale = 0.01, depth = c(2, 2), min_leaf_size = c(30, 30),
+  sf = 0.5, alpha = 0, silent = F, save_data = T)
 }
 \arguments{
 \item{y}{Response variables (vector of length n)}
@@ -16,6 +16,10 @@ gbex(y, X, B = 180, lambda = c(0.025, 0.0025), depth = c(2, 2),
 \item{B}{Number of gradient boosting steps}
 
 \item{lambda}{learning rate for the scale and shape parameter}
+
+\item{lambda_ratio}{the ratio of the lambda_sigma/lambda_gamma (Use this together with lambda_scale, see details)}
+
+\item{lambda_scale}{equal to the suze of lambda_sigma  (Use this together with lambda_scale, see details)}
 
 \item{depth}{Maximum depth of the trees}
 
@@ -42,15 +46,6 @@ gbex returns an object of class "gbex" which contains the following components:
 Estimate the Generalized Pareto distribution conditional on covariates using a boosting procedure.
 }
 \details{
-The cross validation procedure is currently implemented for depth, min_leaf_size, sf and B.
-The initial starting parameters are the ones that are supplied to the function. Then the procedure is as follows:
-\itemize{
- \item{Find the optimal B with initial parameters and lambda_grid}
- \item{Find optimal depth over the grid of depth using the chosen B and lambda_grid}
- \item{Find optimal min_leaf_size over the grid of min_leaf_size using the chosen B and lambda_grid}
- \item{Find optimal sf over the grid of sf using the chosen B and lambda_grid}
- \item{Find optimal B with new chosen parameters and lambda}
-}
-Note that if a grid for a parameter is not supplied the step for this parameter is skipped.
-For B no grid needs to be specified only a maximum initial value.
+Instead of specifying the learning rates lambda for sigma and gamma seperately the ratio of the two can be specified together with the size of the first one.
+This can be done using lambda_ratio and lambda_scale. The used lambda is then given by lambda_scale*(1,1/lambda_ratio).
 }

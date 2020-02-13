@@ -9,13 +9,13 @@ calc_PD <- function(object,var_name){
     stop("Data is not saved into gbex object")
   }
 
-  values = sort(unique(as.vector(object$X[[varname]])))
+  values = sort(unique(as.vector(object$X[[var_name]])))
 
   PD_per_tree = sapply(object$trees_beta,PD_tree,var_name=var_name,values=values)
   sigma = exp(apply(PD_per_tree,1,sum)*object$lambda[1] + object$theta_init$b)
 
   PD_per_tree = sapply(object$trees_gamma,PD_tree,var_name=var_name,values=values)
-  gamma = apply(PD_per_tree,1,sum)*object$lambda[2] + + object$theta_init$b
+  gamma = apply(PD_per_tree,1,sum)*object$lambda[2] + object$theta_init$g
 
   PD = list(sigma=sigma,gamma=gamma,values=values)
   return(PD)
@@ -25,7 +25,7 @@ calc_PD <- function(object,var_name){
 #'
 #' @param object A gbex object
 #' @param variable variable name or index for which to make the dependence plot
-#' @return Two figures side by side with on the left the partial dependence plot for beta and on the right the partial dependence plot for gamma.
+#' @return Two figures side by side with on the left the partial dependence plot for sigma and on the right the partial dependence plot for gamma.
 #' @export
 partial_dependence <- function(object,variable){
   if(is.null(variable)) stop("variable is not specified")
@@ -40,13 +40,12 @@ partial_dependence <- function(object,variable){
   }
   PD = calc_PD(object,variable)
   layout(matrix(c(1,2),ncol=2))
-  par(mai=rep(0.5, 4))
-  plot(PD$values,PD$beta,type="l",lwd=2,
-       xlab=variable,ylab="beta",main="Partial Dependence beta")
+  par(mai=rep(0.8, 4))
+  plot(PD$values,PD$sigma,type="l",lwd=2,
+       xlab=variable,ylab="sigma",main="Partial dependence sigma")
   plot(PD$values,PD$gamma,type="l",lwd=2,
-       xlab=variable,ylab="gamma",main="Partial Dependence gamma")
+       xlab=variable,ylab="gamma",main="Partial dependence gamma")
 }
-
 
 #' Calculate partial dependence for gradient tree
 #'
@@ -73,13 +72,13 @@ PD_tree <- function(tree,var_name,values){
     if(PD_df$var[row] == "<leaf>"){
       PD_df$node_value[row] = update_table$update[match(row,update_table$leaf)]
     } else if(PD_df$var[row] == var_name){
-      split_counter = splits + 1
+      split_counter = split_counter + 1
       child_index = match(PD_df$node_nr[row]*2 + (0:1),PD_df$node_nr)
       PD_df$n[child_index] = PD_df$n[row]
       PD_df$min[child_index] = c(PD_df$min[row],tree_splits[split_counter,4])
       PD_df$max[child_index] = c(tree_splits[split_counter,4],PD_df$max[row])
     } else{
-      split_counter = splits + 1
+      split_counter = split_counter + 1
       child_index = match(PD_df$node_nr[row]*2 + (0:1),PD_df$node_nr)
       PD_df$n[child_index] = PD_df$n[row]*(tree_frame$n[child_index]/tree_frame$n[row])
       PD_df$min[child_index] = rep(PD_df$min[row],2)

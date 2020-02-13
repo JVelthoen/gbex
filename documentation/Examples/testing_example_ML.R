@@ -4,16 +4,16 @@ library(gbex)
 set.seed(30071993)
 
 ### Data generating process ###
-n <- 1000
+n <- 10000
 d <- 2
 data <- get_data(n,d)
 s <- data$s # the sigma parameter
 g <- data$g # the gamma parameter
 y <- data$y # the response vector
-X <- data.frame(X=data$X) # the covariates
-
+X <- cbind(data.frame(X=data$X)) # the covariates
+colnames(X) = paste0("X",1:ncol(X))
 #### WITHOUT CV ON TUNING PARAMETERS
-B <-  250 # The number of gradient boosting steps
+B <- 5000 # The number of gradient boosting steps
 lambda_ratio <- 15# The learning rate for the sigma and gamma parameter
 lambda_size <- 0.01#
 lambda <- lambda_size*c(1,1/lambda_ratio)
@@ -26,6 +26,8 @@ sf=0.75 # The subsample fraction used for estimating each tree (in a single step
 fit <- gbex(y,X,B=B,lambda=lambda,depth=depth,min_leaf_size=min_leaf_size,sf=sf)
 
 print(fit)
+partial_dependence(fit,variable = 2)
+variable_importance(fit,type="permutation")
 
 theta <- predict(fit,newdata=X)
 

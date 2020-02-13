@@ -13,7 +13,7 @@ CV_sf(y, X, num_folds, sf_vec, Bmax, stratified, ...)
 
 \item{num_folds}{the number of folds used to determine the optimal number of trees}
 
-\item{sf_vec}{A list with parameter values for depth}
+\item{sf_vec}{A vector with parameter values for sample fraction}
 
 \item{Bmax}{maximum number of trees used for finding the optimal}
 
