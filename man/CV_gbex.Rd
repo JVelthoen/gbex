@@ -4,7 +4,16 @@
 \alias{CV_gbex}
 \title{Cross validation for gbex}
 \usage{
-CV_gbex(y, X, num_folds, par, Bmax, grid = NULL, stratified = F, ...)
+CV_gbex(
+  y,
+  X,
+  num_folds,
+  Bmax,
+  par_name = NULL,
+  par_grid = NULL,
+  stratified = F,
+  ...
+)
 }
 \arguments{
 \item{y}{Numeric vector of response}
@@ -13,11 +22,11 @@ CV_gbex(y, X, num_folds, par, Bmax, grid = NULL, stratified = F, ...)
 
 \item{num_folds}{the number of folds used to determine the optimal number of trees}
 
-\item{par}{parameter name for which to do the cross validation (see details)}
-
 \item{Bmax}{the maximum number of trees}
 
-\item{grid}{the grid of parameter values for par to do a gridsearch, either a list or vector (see details)}
+\item{par_name}{parameter name for which to do the cross validation (see details)}
+
+\item{par_grid}{the grid of parameter values for par to do a gridsearch, either a list or vector (see details)}
 
 \item{stratified}{whether the cross validation procedure should use stratified sampling}
 
@@ -34,13 +43,17 @@ Performs a cross validation grid search over the provided grid,
 for one variable at the time. Because the optimal number of trees depends heavily on the chosen parameter values,
 for each parameter in grid Bmax trees are estimated and the optimal number over all cross validation folds is chosen to compare with other parameter values.
 
-The possible values of "par" are:
+For opimizing only the number of trees set par_name = NULL.
+Other possible values of "par" are:
 \itemize{
-\item{B}{The number of trees for this no grid needs to be specified only the maximum number of trees Bmax }
 \item{depth}{The depth of the trees grid is specified to be a list where each element contains the depth of beta and gamma}
 \item{sf}{Sample fraction of the trees, grid is specified to be a vector.}
 \item{min_leaf_size}{The minimum leafsize of a tree where grid is specified to be a list where each element contains the minimum leafsize of beta and gamma}
 \item{lambda_ratio}{The ratio between lambda_sigma/lambda_gamma}
+\item{lambda_scale}{The size of lambda_sigma when lambda ratio is specified.}
+\item{lambda}{A vector with lambda for sigma and gamma}
+\item{alpha}{The power of the power divergence}
+
 }
 
 In the ... the values of other tuning parameters are specified. If these are not supplied the standard values of gbex will be used

@@ -1,47 +1,27 @@
-#' Gradient Tree beta
+#' Fit gradient Tree
 #'
-#' Estimate a tree for the beta variable then calculate for the leafnodes how to update.
-#' Beta is a reparametrization of sigma in the sense of beta = log(sigma)
+#' Estimate a gradient tree then calculate for the leafnodes the optimal gradient based on a single newton raphson step
 #'
-#' @param tree_df A dataframe to estimate the tree of the same format as the boosting_df
+#' @param X the covariates a data.frame
+#' @param rr the derivative of likelihood or powerdivergence
+#' @param rr2 the second derivative of likelihood or powerdivergence
 #' @param depth A value indicating the maximum depth
 #' @param min_leaf_size A value indicating the minimum leafsize
 #' @return A list with tree object and a named vector with for each leafnode the update value
 #' @export
-gradient_tree_beta <- function(tree_df,depth,min_leaf_size){
-  ctrl = rpart::rpart.control(maxdepth = depth, minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = min_leaf_size)
-  variable_names = setdiff(names(tree_df),c("y","dev","b","g","r_b","r_g","r2_b","r2_g"))
-  formula = as.formula( paste( "r_b",paste( variable_names, collapse = " + "), sep = " ~ ") )
-  tree = rpart::rpart(formula,data=tree_df, method='anova',control=ctrl)
+gradient_tree <- function(X,rr,rr2,depth,min_leaf_size){
+  if(depth == 0){
+    ctrl = rpart::rpart.control(maxdepth = 1, minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = length(y))
+  } else {
+    ctrl = rpart::rpart.control(maxdepth = depth, minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = min_leaf_size)
+  }
+  data = cbind(data.frame(rr=rr),X)
+  tree = rpart::rpart(rr~.,data=data, method='anova',control=ctrl)
 
-  leaf_node_derivatives = split(tree_df[c('r_b','r2_b')],tree$where)
-  update = unlist(lapply(leaf_node_derivatives,function(x) return(sum(x$r_b)/sum(x$r2_b))))
-  update_table = data.frame(leaf = as.numeric(names(update)),update = unname(update))
-  update_table$update = ifelse(abs(update_table$update) > 1,sign(update_table$update),update_table$update) ## NOTE HERE WE CAP THE UPDATE
-  gradient_tree = list(tree=tree,update_table=update_table)
-  class(gradient_tree) = "gradient_tree"
-  return(gradient_tree)
-}
-
-#' Gradient Tree gamma
-#'
-#' Estimate a tree for the gamma variable then calculate for the leafnodes how to update
-#'
-#' @param tree_df A dataframe to estimate the tree of the same format as the boosting_df
-#' @param depth A value indicating the maximum depth
-#' @param min_leaf_size A value indicating the minimum leafsize
-#' @return A list with tree object and a named vector with for each leafnode the update value
-#' @export
-gradient_tree_gamma <- function(tree_df,depth,min_leaf_size){
-  ctrl = rpart::rpart.control(maxdepth = depth, minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = min_leaf_size)
-  variable_names = setdiff(names(tree_df),c("y","dev","b","g","r_b","r_g","r2_b","r2_g"))
-  formula = as.formula( paste( "r_g",paste( variable_names, collapse = " + "), sep = " ~ ") )
-  tree = rpart::rpart(formula,data=tree_df, method='anova',control=ctrl)
-
-  leaf_node_derivatives = split(tree_df[c('r_g','r2_g')],tree$where)
-  update = unlist(lapply(leaf_node_derivatives,function(x) return(sum(x$r_g)/sum(x$r2_g))))
-  update_table = data.frame(leaf = as.numeric(names(update)),update = unname(update))
-  update_table$update = ifelse(abs(update_table$update) > 1,sign(update_table$update),update_table$update) ## NOTE HERE WE CAP THE UPDATE
+  leaf_node_derivatives = split(data.frame(rr=rr,rr2=rr2),tree$where)
+  new_update = unlist(lapply(leaf_node_derivatives,function(x) return(sum(x$rr)/sum(x$rr2))))
+  update_table = data.frame(leaf = as.numeric(names(new_update)),update = unname(new_update))
+  update_table$update = ifelse(abs(update_table$update) > 1,sign(update_table$update),update_table$update) ## NOTE HERE WE BOUND THE UPDATE
   gradient_tree = list(tree=tree,update_table=update_table)
   class(gradient_tree) = "gradient_tree"
   return(gradient_tree)

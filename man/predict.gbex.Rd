@@ -4,8 +4,7 @@
 \alias{predict.gbex}
 \title{Predict function for gbex}
 \usage{
-\method{predict}{gbex}(object, newdata = NULL, probs = NULL,
-  what = "par", Blim = NULL)
+\method{predict}{gbex}(object, newdata = NULL, probs = NULL, what = "par", Blim = NULL)
 }
 \arguments{
 \item{object}{A fitted gbex object}

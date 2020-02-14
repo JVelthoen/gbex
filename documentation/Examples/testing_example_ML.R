@@ -4,7 +4,7 @@ library(gbex)
 set.seed(30071993)
 
 ### Data generating process ###
-n <- 10000
+n <- 1000
 d <- 2
 data <- get_data(n,d)
 s <- data$s # the sigma parameter
@@ -13,7 +13,7 @@ y <- data$y # the response vector
 X <- cbind(data.frame(X=data$X)) # the covariates
 colnames(X) = paste0("X",1:ncol(X))
 #### WITHOUT CV ON TUNING PARAMETERS
-B <- 5000 # The number of gradient boosting steps
+B <- 250 # The number of gradient boosting steps
 lambda_ratio <- 15# The learning rate for the sigma and gamma parameter
 lambda_size <- 0.01#
 lambda <- lambda_size*c(1,1/lambda_ratio)
@@ -65,8 +65,11 @@ points(x_bar,theta$s,pch='.',col='blue')
 plot(x_bar,g,pch='.', col='red',ylim=c(min(c(g,theta$g)),max(c(g,theta$g))))
 points(x_bar,theta$g,pch='.',col='blue')
 
+#####################################################################
+################### CROSS VALIDATION TESTS ##########################
+#####################################################################
 
-## Estimation of B with cross validation
+##### CV for B ####
 n <- 1000
 d <- 2
 data <- get_data(n,d)
@@ -80,47 +83,33 @@ min_leaf_size = c(10,10)
 sf = 0.75
 depth = c(2,2)
 
-depth_list <- list(c(1,1),c(2,2))
-sf_vec <- c()
-num_folds = 12
-CV_fit = CV_gbex(y,X,num_folds,"B",250,stratified=T,depth=depth,lambda=lambda,sf=sf,min_leaf_size=min_leaf_size)
+num_folds = 3
+
+CV_fit = CV_gbex(y,X,num_folds,300,stratified=T,lambda=lambda,min_leaf_size=min_leaf_size,sf=sf,depth=depth)
+
+print(CV_fit)
 
 plot(CV_fit,what="all")
 plot(CV_fit,what="folds")
 plot(CV_fit,what="data")
 
 
-initial_dev = CV_fit$dev_all[1]
-dev = CV_fit$dev_all - initial_dev
-dev_fold = apply(CV_fit$dev_folds,2,function(dev_temp){dev_temp - dev_temp[1] })
+##### CV for lambda_ratio ####
+par_grid = c(2,5,10)
+par_name = "lambda_ratio"
+lambda_scale = 0.01
+num_folds = 3
 
-grid_B = CV_fit$grid_B
-layout(c(1),widths = c(5,1))
-par(mai=rep(0.5, 4))
-plot(grid_B,dev,type="l",lwd=2,
-     xlab="B",ylab="dev",ylim=range(dev_fold))
-abline(v=grid_B[dev==min(dev)],lty = "dashed",lwd=3)
-for(fold in 1:num_folds){
-  lines(grid_B,dev_fold[,fold],type="l",lwd=2,lty=3)
+CV_fit = CV_gbex(y,X,num_folds,300,
+                 par_name=par_name, par_grid=par_grid, stratified=T,
+                 min_leaf_size= min_leaf_size,sf=sf,depth=depth)
 
-}
+print(CV_fit)
 
-object <- CV_fit
-folds = object$folds
-y = object$y
+plot(CV_fit,what="all")
+plot(CV_fit,what="folds")
+plot(CV_fit,what="data")
 
-num_folds = object$num_folds
-nrow = floor(sqrt(num_folds))
-ncol = ceiling(num_folds/nrow)
-dev = object$dev_folds
 
-layout(matrix(c(1:num_folds,rep(0,nrow*ncol - num_folds)), ncol=ncol), widths=c(rep(1,ncol)))
-par(mai=rep(0.5, 4))
-for(fold in 1:num_folds){
-  plot(X[folds==fold,1],X[folds==fold,2],main=paste("Fold",fold), cex=0.7,pch=16,
-       xlab="y",ylab="counts")
-  points(X[(folds==fold)&(y>10),1],X[(folds==fold)&(y>10),2],main=paste("Fold",fold), cex=1.2,pch=16,col="red",
-       xlab="y",ylab="counts")
-  abline(h=c(0.5,-0.5),v=c(0.5,-0.5))
-}
+
 
