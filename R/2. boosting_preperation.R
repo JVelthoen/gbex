@@ -58,11 +58,11 @@ compute_divergence <- function(y,theta,alpha){
     B = apply(divergence_input,1,B_func)
     divergence_input_PD = cbind(divergence_input,A,B)
 
-    dev = apply(divergence_input,1,function(x) PD_dev(x[1:3],x[4],x[5],alpha))
-    r_b = exp(theta$b)*apply(divergence_input,1,function(x) PD_dev_diff_s(x[1:3],x[4],x[5],alpha))
-    r_g = apply(divergence_input,1,function(x) PD_dev_diff_g(x[1:3],x[4],x[5],alpha))
-    r2_b = exp(theta$b)*apply(divergence_input,1,function(x) PD_dev_diff2_s(x[1:3],x[4],x[5],alpha)) + r_b
-    r2_g = apply(divergence_input,1,function(x) PD_dev_diff2_g(x[1:3],x[4],x[5],alpha))
+    dev = apply(divergence_input_PD,1,function(x) PD_dev(x[1:3],x[4],x[5],alpha))
+    r_b = exp(theta$b)*apply(divergence_input_PD,1,function(x) PD_dev_diff_s(x[1:3],x[4],x[5],alpha))
+    r_g = apply(divergence_input_PD,1,function(x) PD_dev_diff_g(x[1:3],x[4],x[5],alpha))
+    r2_b = exp(theta$b)*apply(divergence_input_PD,1,function(x) PD_dev_diff2_s(x[1:3],x[4],x[5],alpha)) + r_b
+    r2_g = apply(divergence_input_PD,1,function(x) PD_dev_diff2_g(x[1:3],x[4],x[5],alpha))
   }
   output = data.frame(b=theta$b,g=theta$g,dev=dev,r_b=r_b, r_g=r_g, r2_b=r2_b, r2_g=r2_g)
   return(output)

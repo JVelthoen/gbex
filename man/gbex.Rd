@@ -4,9 +4,20 @@
 \alias{gbex}
 \title{GPD boosting}
 \usage{
-gbex(y, X, B = 180, lambda = NULL, lambda_ratio = 15,
-  lambda_scale = 0.01, depth = c(2, 2), min_leaf_size = c(30, 30),
-  sf = 0.5, alpha = 0, silent = F, save_data = T)
+gbex(
+  y,
+  X,
+  B = 180,
+  lambda = NULL,
+  lambda_ratio = 15,
+  lambda_scale = 0.01,
+  depth = c(2, 2),
+  min_leaf_size = c(30, 30),
+  sf = 0.5,
+  alpha = 0,
+  silent = F,
+  save_data = T
+)
 }
 \arguments{
 \item{y}{Response variables (vector of length n)}
