@@ -39,12 +39,26 @@ partial_dependence <- function(object,variable){
     stop("Variable name is not recognized.")
   }
   PD = calc_PD(object,variable)
-  layout(matrix(c(1,2),ncol=2))
-  par(mai=rep(0.8, 4))
-  plot(PD$values,PD$sigma,type="l",lwd=2,
-       xlab=variable,ylab="sigma",main="Partial dependence sigma")
-  plot(PD$values,PD$gamma,type="l",lwd=2,
-       xlab=variable,ylab="gamma",main="Partial dependence gamma")
+  data1 = data.frame(values = PD$values,PD = PD$sigma)
+  data2 = data.frame(values = PD$values,PD = PD$gamma)
+
+  g1 = ggplot2::ggplot(data1,ggplot2::aes(x=values,y=PD)) +
+    ggplot2::geom_line(lwd=1.5) +
+    ggplot2::labs(title="sigma", x = variable, y = "Partial Dependence") +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(text = ggplot2::element_text(size = 20),
+                   plot.title = ggplot2::element_text(hjust = 0.5),
+                   panel.border = ggplot2::element_rect(fill=NA))
+  g2 = ggplot2::ggplot(data2,ggplot2::aes(x=values,y=PD)) +
+    ggplot2::geom_line(lwd=2) +
+    ggplot2::labs(title="gamma", x = variable, y = "Partial Dependence") +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(text = ggplot2::element_text(size = 20),
+                   plot.title = ggplot2::element_text(hjust = 0.5),
+                   panel.border = ggplot2::element_rect(fill=NA))
+
+  g = patchwork::wrap_plots(g1,g2)
+  return(g)
 }
 
 #' Calculate partial dependence for gradient tree

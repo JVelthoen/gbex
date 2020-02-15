@@ -89,9 +89,9 @@ CV_fit = CV_gbex(y,X,num_folds,300,stratified=T,lambda=lambda,min_leaf_size=min_
 
 print(CV_fit)
 
-plot(CV_fit,what="all")
-plot(CV_fit,what="folds")
-plot(CV_fit,what="data")
+plot(CV_fit,what="general")
+plot(CV_fit,what="per_fold")
+plot(CV_fit,what="hist_data")
 
 
 ##### CV for lambda_ratio ####
@@ -106,9 +106,8 @@ CV_fit = CV_gbex(y,X,num_folds,300,
 
 print(CV_fit)
 
-plot(CV_fit,what="all")
-plot(CV_fit,what="folds")
-plot(CV_fit,what="data")
+plot(CV_fit,what="general")
+plot(CV_fit,what="hist_data")
 
 
 

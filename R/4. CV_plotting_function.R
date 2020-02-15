@@ -1,110 +1,83 @@
 #' Plotting function for CV_par object
 #'
 #' @param object par_CV object
-#' @param what string taking "all" average over all folds, "folds" for a figure for each fold or "data" for histograms of the different folds.
+#' @param what string taking "general" average over all folds, "per_fold" for a figure for each fold or "hist_data" for histograms of the different folds.
 #' @return plots the cross validation results for the CV_gbex object
 #' @export
-plot.CV_gbex <- function(object,what = "all"){
-  par = object$par
-  dev = object$dev_all
+plot.CV_gbex <- function(object,what = "general"){
   grid_B = object$grid_B
-  if(what == "all"){
-    if(par=="B"){
-      layout(c(1),widths = c(5,1))
-      par(mai=rep(0.5, 4))
-      plot(grid_B,dev,type="l",lwd=2,
-           xlab="B",ylab="dev",main=paste("Grid Search",par))
-      abline(v=grid_B[dev==min(dev)],lty = "dashed",lwd=3)
-    } else{
-      layout(matrix(c(1,2), ncol=2, byrow=TRUE),widths = c(5,1))
-      par(mai=rep(0.5, 4))
-      plot(grid_B,grid_B,type="n",lwd=2,
-           xlab="B",ylab="dev",main=paste("CV grid search",par),
-           ylim=range(dev))
-      optimal_index = which(apply(dev,2,min) == min(dev))
-      for(par_value in 1:ncol(dev)){
-        colour = ifelse(par_value == optimal_index,"red","black")
-        lines(grid_B,dev[,par_value],lty=par_value,lwd=2,col=colour)
-        abline(v=grid_B[dev[,par_value] == min(dev[,par_value])],lty = par_value,lwd=3,col = colour)
-      }
-      par(mai=c(0,0,0,0))
-      plot.new()
-      grid = object$grid
-      if(par %in% c("depth","min_leaf_size")){
-        legend_text = sapply(grid,function(par){paste0("(",par[1],",",par[2],")")})
-      } else{
-        legend_text = as.character(grid)
-      }
-      legend(x="center", ncol=1,legend=legend_text,
-             lty=1:length(legend_text), title=par,bty="n",lwd=2)
+  if(what == "general"){
+    if(object$par == "B"){
+      data = data.frame(dev=object$dev_all, B = object$grid_B)
+      g = ggplot2::ggplot(data,ggplot2::aes(y=dev,x=B)) +
+        ggplot2::geom_line(size=1) +
+        ggplot2::geom_vline(xintercept = which(object$dev_all == min(object$dev_all)) + 1, lty=2,size=0.8) +
+        ggplot2::labs(title="CV deviance", x = "Iteration", y = "Deviance") +
+        ggplot2::theme_classic() +
+        ggplot2::theme(text = ggplot2::element_text(size = 20),
+                       plot.title = ggplot2::element_text(hjust = 0.5))
+    } else if(object$par %in% c("lambda","lambda_ratio","lambda_scale","depth","min_leaf_size","sf","alpha")){
+      data = data.frame(B=grid_B,dev=object$dev_all)
+      data = reshape(data, direction = "long", varying = colnames(data)[-1],
+                     v.names = "dev", timevar = "par_name")
+      grid_names = unlist(lapply(object$grid,
+                                 function(x){
+                                   if(length(x) == 1) return(as.character(x))
+                                   else return(paste0("(",paste0(x,collapse=","),")"))
+                                               }
+                                 ))
+      data$par_name = factor(grid_names[data$par_name],levels=grid_names)
+      data_vline = data.frame(par_name = factor(grid_names[which(sapply(object$grid,
+                                                           function(grid_value){
+                                                             all(grid_value == object$par_CV)
+                                                           }))],levels=grid_names),
+                              int = object$Bopt)
+      g = ggplot2::ggplot(data,ggplot2::aes(y=dev,x=B,lty=par_name)) +
+        ggplot2::geom_line(size=1) +
+        ggplot2::geom_vline(data = data_vline, ggplot2::aes(xintercept = int), linetype = 2,size=0.8) +
+        ggplot2::labs(title=paste("CV deviance per",object$par), x = "Iteration", y = "Deviance",lty=object$par) +
+        ggplot2::theme_classic() +
+        ggplot2::theme(text = ggplot2::element_text(size = 20),
+                       plot.title = ggplot2::element_text(hjust = 0.5))
     }
-  } else if(what == "folds"){
-    num_folds = object$num_folds
-    nrow = floor(sqrt(num_folds))
-    ncol = ceiling(num_folds/nrow)
-    dev = object$dev_folds
-
-    if(par=="B"){
-      dev = object$dev_all - object$dev_all[1]
-      dev_fold = apply(object$dev_folds,2,function(dev_temp){dev_temp - dev_temp[1] })
-      grid_B = CV_fit$grid_B
-
-      layout(matrix(c(1,2),ncol=1),heights = c(5,1))
-      par(mai=rep(0.5, 4))
-      plot(grid_B,dev,type="l",lwd=2,
-           xlab="B",ylab="dev",ylim=range(dev_fold),
-           main="CV for B")
-      abline(v=grid_B[dev==min(dev)],lty = "dashed",lwd=3)
-      for(fold in 1:num_folds){
-        lines(grid_B,dev_fold[,fold],type="l",lwd=2,lty=3)
-      }
-      par(mai=rep(0, 4))
-      plot.new()
-      legend(x="center", ncol=2,legend=c("All folds","Sepereate folds"),
-             lty=1:2,bty="n",lwd=2,cex=1.5)
-
+  } else if(what == "per_fold"){
+    if(object$par == "B"){
+      dev_temp = apply(object$dev_folds,2,function(dev){ dev-dev[1]})
+      data = data.frame(B = grid_B,dev_temp)
+      data = reshape(data, direction = "long", varying = colnames(data)[-1],
+              v.names = "dev", timevar = "fold")
+      data$fold = paste("Fold",data$fold)
+      data_all = data.frame(dev=object$dev_all-object$dev_all[1], B = object$grid_B)
+      data_abline = data.frame(fold = unique(data$fold),
+                               int = apply(object$dev_folds,2,function(dev){which(dev== min(dev)) + 1}))
+      g = ggplot2::ggplot(data,ggplot2::aes(y=dev,x=id,group = fold)) +
+        ggplot2::geom_line(size=1,lty=2) +
+        ggplot2::geom_line(data=data_all,ggplot2::aes(y=dev,x=B),size=1,lty=1) +
+        ggplot2::labs(title="CV deviance every fold", x = "Iteration", y = "Deviance") +
+        ggplot2::geom_vline(xintercept = which(object$dev_all == min(object$dev_all))+1,size=0.8) +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(text = ggplot2::element_text(size = 20),
+                       plot.title = ggplot2::element_text(hjust = 0.5),
+                       panel.border = ggplot2::element_rect(fill=NA))
     } else{
-      layout(matrix(c(1:num_folds,rep(0,nrow*ncol - num_folds)), ncol=ncol), widths=c(rep(1,ncol)))
-      for(fold in 1:num_folds){
-        par(mai=rep(0.5, 4))
-        plot(grid_B,dev[[fold]][,1],type="n",
-             xlab="B",ylab="dev",main=paste("fold",fold),
-             ylim = c(min(dev[[fold]]),max(dev[[fold]])))
-        for(par_value in 1:ncol(dev[[fold]])){
-          lines(grid_B,dev[[fold]][,par_value],lty=par_value,lwd=2)
-          abline(v=grid_B[dev[[fold]][,par_value] == min(dev[[fold]][,par_value])],lty = par_value,lwd=3)
-        }
-      }
-      par(mai=c(0,0,0,0))
-      plot.new()
-      grid = object$grid
-      if(par %in% c("depth","min_leaf_size")){
-        legend_text = sapply(grid,function(par){paste0("(",par[1],",",par[2],")")})
-      } else{
-        legend_text = as.character(grid)
-      }
-      legend(x="right", ncol=1,legend=legend_text,
-             lty=1:length(legend_text), title=par,bty="n",lwd=2,cex=1.5)
-      }
-    } else if(what == "data"){
-    folds = object$folds
-    y = object$y
-
-    num_folds = object$num_folds
-    nrow = floor(sqrt(num_folds))
-    ncol = ceiling(num_folds/nrow)
-    dev = object$dev_folds
-
-    layout(matrix(c(1:num_folds,rep(0,nrow*ncol - num_folds)), ncol=ncol), widths=c(rep(1,ncol)))
-    par(mai=rep(0.5, 4))
-    for(fold in 1:num_folds){
-      hist(y[folds==fold],seq(min(y)-0.1,max(y) + 0.1,length.out=20),main=paste("Fold",fold),
-           xlab="y",ylab="counts",xlim=range(y),10)
+      stop("this type of plot can not be made for this variable")
     }
+  } else if(what == "hist_data"){
+    data = data.frame(fold = paste("Fold",object$folds),y=object$y)
+    g = ggplot2::ggplot(data,ggplot2::aes(x=y)) +
+      ggplot2::geom_histogram(binwidth = diff(range(data$y))/20) +
+      ggplot2::labs(title="Observation histogram", x = "Observations", y = "Frequency") +
+      ggplot2::facet_wrap(ggplot2::vars(fold)) +
+      ggplot2::theme_minimal() +
+      ggplot2::theme(text = ggplot2::element_text(size = 20),
+                     plot.title = ggplot2::element_text(hjust = 0.5),
+                     panel.border = ggplot2::element_rect(fill=NA))
   } else{
     stop("This plot is not specified for a CV_gbex object.")
   }
+  return(g)
 }
+
 
 #' printing function for CV_gbex object
 #'
