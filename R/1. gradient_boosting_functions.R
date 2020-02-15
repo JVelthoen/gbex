@@ -58,8 +58,8 @@ gbex <- function(y,X,B=180,lambda=NULL,
     tree_df = boosting_df[sample(1:n,sf*n,replace=F),]
 
     # Fit gradient trees for sigma and gamma parameter
-    tree_beta = gradient_tree(tree_df$y, tree_df[covariates], tree_df$r_b,tree_df$r2_b, depth[1], min_leaf_size[1])
-    tree_gamma = gradient_tree(tree_df$y, tree_df[covariates], tree_df$r_g,tree_df$r2_g, depth[2], min_leaf_size[2])
+    tree_beta = gradient_tree(tree_df[covariates], tree_df$r_b,tree_df$r2_b, depth[1], min_leaf_size[1])
+    tree_gamma = gradient_tree(tree_df[covariates], tree_df$r_g,tree_df$r2_g, depth[2], min_leaf_size[2])
 
     # Use the estimated trees to update the parameters
     theta_hat = update_parameters(tree_beta,tree_gamma,boosting_df,lambda)
@@ -147,7 +147,6 @@ predict.gbex <- function(object, newdata = NULL,probs = NULL,what="par",Blim=NUL
 
 #' Print function for gbex
 #'
-#'
 #' @param object A fitted gbex object
 #' @return Prints the gbex object
 #' @export
@@ -161,6 +160,22 @@ print.gbex <- function(object){
   }
   cat(paste0(object$B," trees are fitted.\n"))
   cat(paste0("Training error was equal to ",object$dev[length(object$dev)],".\n"))
+}
+
+#' Plot function for gbex
+#'
+#' @param object A fitted gbex object
+#' @return Plots the deviance for each iteration
+#' @export
+plot.gbex <- function(object){
+  data = data.frame(dev = object$dev, B = 0:object$B)
+  g = ggplot2::ggplot(data,ggplot2::aes(y=dev,x=B)) +
+    ggplot2::geom_line(size=1) +
+    ggplot2::labs(title="Training deviance", x = "Iteration", y = "Deviance") +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(text = ggplot2::element_text(size = 20),
+                   plot.title = ggplot2::element_text(hjust = 0.5))
+  return(g)
 }
 
 

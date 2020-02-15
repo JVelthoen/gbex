@@ -4,12 +4,12 @@
 \alias{plot.CV_gbex}
 \title{Plotting function for CV_par object}
 \usage{
-\method{plot}{CV_gbex}(object, what = "all")
+\method{plot}{CV_gbex}(object, what = "general")
 }
 \arguments{
 \item{object}{par_CV object}
 
-\item{what}{string taking "all" average over all folds, "folds" for a figure for each fold or "data" for histograms of the different folds.}
+\item{what}{string taking "general" average over all folds, "per_fold" for a figure for each fold or "hist_data" for histograms of the different folds.}
 }
 \value{
 plots the cross validation results for the CV_gbex object

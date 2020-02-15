@@ -141,7 +141,7 @@ CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,...){
   par_opt = unlist(par_grid[index_opt])
 
   output = list(par_CV = par_opt, par = par_name, grid = par_grid,
-                grid_B = 0:Bmax,
+                grid_B = 0:Bmax, B_opt = B_opt,
                 dev_all = dev, dev_folds = dev_matrix_list,
                 num_folds = num_folds, folds=folds,
                 y=y, X=X, stratified = stratified,
