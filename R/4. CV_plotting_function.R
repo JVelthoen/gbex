@@ -31,7 +31,7 @@ plot.CV_gbex <- function(object,what = "general"){
                                                            function(grid_value){
                                                              all(grid_value == object$par_CV)
                                                            }))],levels=grid_names),
-                              int = object$Bopt)
+                              int = object$B_opt)
       g = ggplot2::ggplot(data,ggplot2::aes(y=dev,x=B,lty=par_name)) +
         ggplot2::geom_line(size=1) +
         ggplot2::geom_vline(data = data_vline, ggplot2::aes(xintercept = int), linetype = 2,size=0.8) +
@@ -47,7 +47,7 @@ plot.CV_gbex <- function(object,what = "general"){
       data = reshape(data, direction = "long", varying = colnames(data)[-1],
               v.names = "dev", timevar = "fold")
       data$fold = paste("Fold",data$fold)
-      data_all = data.frame(dev=object$dev_all-object$dev_all[1], B = object$grid_B)
+      data_all = data.frame(dev=object$dev_all-object$dev_all[1], B = object$grid_B,fold="all")
       data_abline = data.frame(fold = unique(data$fold),
                                int = apply(object$dev_folds,2,function(dev){which(dev== min(dev)) + 1}))
       g = ggplot2::ggplot(data,ggplot2::aes(y=dev,x=id,group = fold)) +

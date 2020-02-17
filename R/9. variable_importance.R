@@ -9,7 +9,7 @@
 variable_importance <- function(object,type){
   VI = calc_VI(object,type)
   if(type=="permutation"){
-    data = data.frame(dev=VI$dev,var=factor(names(VI$dev),levels=names(VI$dev[order(dev,decreasing=T)])))
+    data = data.frame(dev=VI$dev,var=factor(names(VI$dev),levels=names(VI$dev[order(VI$dev,decreasing=T)])))
     g = ggplot2::ggplot(data,ggplot2::aes(x=var,y=dev)) +
       ggplot2::geom_bar(stat="identity") +
       ggplot2::labs(title="Permutation variable importance", x = "Variable", y = "Importance") +
@@ -24,7 +24,7 @@ variable_importance <- function(object,type){
     g = ggplot2::ggplot(data,ggplot2::aes(x=var,y=VI)) +
       ggplot2::geom_bar(stat="identity") +
       ggplot2::labs(title="Relative importance", x = "Variable", y = "Importance") +
-      ggplot2::facet_wrap(vars(par)) +
+      ggplot2::facet_wrap(ggplot2::vars(par)) +
       ggplot2::theme_minimal() +
       ggplot2::theme(text = ggplot2::element_text(size = 20),
                      plot.title = ggplot2::element_text(hjust = 0.5),

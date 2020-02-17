@@ -1,7 +1,7 @@
 ---
 title: "Introduction to gradient boosting for extremes"
-author: "Clément Dombry and Jasper Velthoen"
-date: "10/18/2019"
+author: "Clement Dombry and Jasper Velthoen"
+date: "02/14/2020"
 output: pdf_document
 ---
 
@@ -9,13 +9,13 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-\section{Extreme quantile regression via GPD modelling of exceedances above high threshold and }
+\section{Extreme quantile regression via GPD modelling of exceedances above high threshold}
 
 By the Pickands-de Haan-Balkema theorem, if the rescaled distribution of exceedances converges to a non degenerate distribution
 \[
-\lim_{u\uparrow y^*}\mathbb{P}\left(\frac{Y-u}{f(u)}>y \left|\right. Y>u \right) =1-H(y)
+\lim_{u\uparrow y^*}\mathbb{P}\left(\frac{Y-u}{f(u)}>y \left|\right. Y>u \right) =1-H(y),
 \]
-the limit is necessarily a GPD distribution
+the limit $H$ is necessarily a GPD distribution
 \[
 H_{\gamma,\sigma}(y)=1-\left(1+\gamma \frac{y}{\sigma}\right)_+^{-1/\gamma}.
 \]
@@ -42,14 +42,16 @@ The corresponding conditional quantile for $Y$ given $X=x$ with order $1-\alpha$
 \[
 q(\alpha| x)= u(x)+\sigma(x) \frac{(\alpha/ p(x))^{- \gamma(x)}-1}{ \gamma(x)},\quad \alpha<p(x).
 \]
-The estimation of $q(\alpha| x)$ is then obtained by plugging estimations of  $p(x),\sigma(x)$ and $\gamma(x)$. 
+The estimation of $q(\alpha| x)$ is then obtained by plugging estimations of  $p(x)$, $\sigma(x)$ and $\gamma(x)$. 
 
-For GPD estimation, maximum likelihood estimation is standard and  provides asymptotically normal estimators in the i.i.d. case  with $\gamma>-1/2$. It is natural to introduce the rescaled exceedance $Z=\max(Y-u(x),0)$, where $Z=0$ corresponds to no exceedance. The negative log-likelihood at $\theta=(p,\sigma,\gamma)$ writes
+For GPD estimation, maximum likelihood estimation is standard and  provides asymptotically normal estimators in the i.i.d. case  with $\gamma>-1/2$. It is natural to introduce the rescaled exceedance \[
+Z=\max(Y-u(x),0),
+\]
+where $Z=0$ corresponds to no exceedance. The negative log-likelihood at $\theta=(p,\sigma,\gamma)$ writes
 \begin{align*}
-\ell_{z}(\theta)=&\log(1-p)) 1_{\{z=0\}} - \log p 1_{\{z>0\}}\\
-&+\Big[(1+1/\gamma)\log\Big(1+\gamma \frac{z}{\sigma}\Big) + \log \sigma\Big]1_{z>0}.
+\ell_{z}(\theta)=&\Big[\log(1-p)) 1_{\{z=0\}} - \log p 1_{\{z>0\}}\Big]+\Big[(1+1/\gamma)\log\Big(1+\gamma \frac{z}{\sigma}\Big) + \log \sigma\Big]1_{z>0}.
 \end{align*}
-The first line corresponds to the Bernoulli negative log-likelihood and is related to the classification problem  $(z>0)$ VS  $(z=0)$, that is  exceedance VS no exceedance. The second line is the GPD negative log-likelihood and is related to the GP modeling for exceedances $z>0$ only.
+The first term corresponds to the Bernoulli negative log-likelihood and is related to the classification problem  $(z>0)$ VS  $(z=0)$, that is  exceedance VS no exceedance. The second term is the GPD negative log-likelihood and is related to the GP modeling for exceedances $z>0$ only.
 
 In a statistical learning framework, we need to learn the function 
 $$\theta(x)=(p(x),\sigma(x),\gamma(x))$$ 
@@ -62,7 +64,7 @@ Our proposal is to use gradient boosting (Friedman) and generalized random fores
 We refer to The Elements of Statistical Learning, section 10.10 (Numerical Optimization via Gradient Boosting). The following algorithm is a natural adaptation of Algorithm 10.3 therein.  The main difference is that in our framework, the function to learn $\theta(x)$ has three components, so that we will learn three sequences of trees - a similar strategy is used in multiclass classification where several sequences of trees are trained to learn the probabilities of the different classes (see Algorithm 10.4 in ESL).
 
 \medskip
-For $\theta=(p,\sigma,\gamma)$, we use the notation  $\theta=(\theta^p,\theta^\sigma,\theta^\gamma)$ and one generic component is noted $\theta^\delta$ with $\delta\in\{p,\sigma,\gamma\}$ . The algorithm runs as follows:
+For $\theta=(p,\sigma,\gamma)$, we use the notation  $\theta=(\theta^p,\theta^\sigma,\theta^\gamma)$ and one generic component is noted $\theta^\delta$ with $\delta\in\{p,\sigma,\gamma\}$. The algorithm runs as follows:
 \begin{itemize}
 \item data set: $(x_i,z_i)$, $1\leq i\leq n$.
 \item parameters: 
@@ -77,7 +79,7 @@ For $\theta=(p,\sigma,\gamma)$, we use the notation  $\theta=(\theta^p,\theta^\s
 \[
 \theta_0(x)\equiv \mathop{\mathrm{arg\,min}}_{\theta} \sum_{i=1}^n\ell_{z_i}(\theta).
 \]
-This is simply  the maximum likelihood estimator when  the $x_i$'s are ignored and the $z_i$'s assumed i.i.d. with likelihood $\ell$.
+This is simply  the maximum likelihood estimator when  the $x_i$'s are ignored and the $z_i$'s are assumed i.i.d. with likelihood $\ell$.
 \item For $b=1$ to $B$:
 \begin{enumerate}
 \item (gradient) For $\delta\in\{p,\sigma,\gamma\}$, compute the partial derivatives
@@ -105,31 +107,44 @@ T_b^\delta(x)=\sum_{j=1}^{J^\delta} \gamma_{bj}^\delta 1_{\{x\in R_{bj}^\delta\}
 \]
 \end{itemize}
 
+In practice, the line search 2(c) is  computationnaly too demanding and we use only  one Newton-Raphson step. That is, the objective function is approximated by its Taylor expansion of order 2, yielding 
+\begin{align*}
+\tilde \gamma_{bj}^\delta &=\mathop{\mathrm{arg\,min}}_{\gamma} \sum_{x_i\in R_{bj}^\delta}\Big(\ell_{z_i}(\theta_{b-1}(x_i))+\gamma \frac{\partial \ell_{z_i}}{\partial\theta^\delta}(\theta_{b-1}(x_i))+\frac{\gamma^2}{2} \frac{\partial^2 \ell_{z_i}}{\partial\theta^{\delta2}}(\theta_{b-1}(x_i))\Big)\\
+&=-\frac{\sum_{x_i\in R_{bj}^\delta} \frac{\partial \ell_{z_i}}{\partial\theta^\delta}(\theta_{b-1}(x_i))}{ \sum_{x_i\in R_{bj}^\delta} \frac{\partial^2 \ell_{z_i}}{\partial\theta^{\delta2}}(\theta_{b-1}(x_i))}
+\end{align*}
 
-\section{The gbex function}
+We observed that the algorithm may be  unstable, especially when tuning parameters are ill specified. Gradient steps  are sometimes rather large leading to large decreases in deviance and possibly negative $\sigma$ parameter. Therefore, we bound the absolute value of the gradient step by the learning rate for that parameter. Additionally, we reparamaterize $\sigma = \exp(\beta)$ and rewrote all the algorithm in terms of the $\beta$ parameter.
 
-The current implementation in the gbex we assume that the data follow a GPD distribution with parameters some function $\sigma(x)$ and $\gamma(x)$. 
+
+
+\section{The \texttt{gbex} package}
+
+In the current implementation of the \texttt{gbex} package, we assume that the data follow a GPD distribution with parameters depending on the covariate $x$ through functions $\sigma(x)$ and $\gamma(x)$ and we construct two sequence of trees two estimate those functions. For now, we use  
+\begin{align*}
+  &X_1,\ldots, X_d \sim \mbox{Unif}(-1,1),\\
+  &\overline{X} = \frac{1}{d}\sum_{i=1}^d X_i^2, \\
+  &\sigma(x) = \exp(\overline{X}),\\
+  &\gamma(x) = \frac{1}{3} + \frac{1}{10} \overline{X}n\\
+  &Y \sim GPD(\sigma(x),\gamma(x)).
+\end{align*}
+
+
+
 First we can install and load the package,
 ```{r}
 rm(list=ls())
 require(rpart)
 require(treeClust)
 
-package_directory <- "/Users/jjvelthoen/Documents/GitHub/gbex"
+# package_directory <- "/Users/jjvelthoen/Documents/GitHub/gbex"
+package_directory <- "C:/Users/cd-admin/Dropbox/RECHERCHE/JUAN/GPD Boosting/gbex"
 install.packages(package_directory,repos=NULL,type="source",quiet=T)
 library(gbex)
 ```
 
-First we need data, which will be simulated from the following model,
-\begin{align*}
-  &X_1, X_2 \sim \mbox{Unif}(-1,1)\\
-  &\overline{X} = X_1^2 + X_2^2\\
-  &\sigma(\overline{X}) = \exp(\overline{X})\\
-  &\gamma(\overline{X}) = \frac{1}{3} + \frac{1}{10} \overline{X}\\
-  &Y \sim GPD(\sigma(\overline{X}),\gamma{\overline{X}})
-\end{align*}
 
-The data can be generated with the \textit{get\_data} function in the package,
+The data can be generated with the $\texttt{get\_data}$ function. We should soon incorporate  arguments $\texttt{fun\_sigma}$ and $\texttt{fun\_gamma}$ to allow the user to provide his own parameter functions.
+
 ```{r}
 set.seed(1234)
 
@@ -145,31 +160,35 @@ colnames(X) = paste0("X",1:ncol(X))
 ```
 
 
-The model contains several tuning parameters which can be tuned later by cross validation, for an inital fit we keep them fixed.
+The model contains several tuning parameters. The choice of $B$ is crucial: $B=0$ corresponds to constant parameters so that small value of $B$ lead to underfitting while too large values of $B$ lead to overfitting. The  learning rates, minimum leaf size and sampling fraction act as  regularization parameters and we would like to provide good default for them. The tree depth is interpreted as the model complexity and provides the order of interaction between covariates: depth=0 corresponds to constant parameter, depth=1 corresponds to additive modeling (without interaction between variables), depth=2 allows for interaction of order 2 and so on.  
+
 ```{r}
-B <- 250  # Number of trees
+B=250  # Number of trees
 lambda=c(0.01,0.0025) # Learning rate for sigma and gamma
-depth=c(2,2) # maximum depth of trees for sigma and gamma
-min_leaf_size=c(10,10) # minimum_leaf_size of trees for sigma and gamma
+min_leaf_size=c(10,10) # Minimum_leaf_size of trees for sigma and gamma
 sf=0.75 # Subsampling fraction to use for each tree
+depth=c(2,2) # Maximum depth of trees for sigma and gamma
 ```
 
-Now the model is fitted using the \textit{gbex} function.
+For fixed parameters, the \texttt{gbex} function is used to fit the boosting model. The model is fitted by gradient boosting using maximum likelihood when alpha = 0, and minimum power divergence when alpha>0.
+
 ```{r}
-fit <- gbex(y,X,B=B,lambda=lambda,depth=depth,min_leaf_size=min_leaf_size,sf=sf,alpha=0,silent=T)
+fit <- gbex(y, X, B=B, lambda=lambda, depth=depth, min_leaf_size=min_leaf_size,
+            sf=sf, alpha=0, silent=T)
 print(fit)
 ```
-The model is fitted by gradient descent using maximum likelihood, alpha = 0, for different parameters power divergence is used with power alpha.
 
-Now we can investigate how the model fit is on the training data and see if it indeed minimizes the negative log-likelihood.
+We can check that the deviance (negative log-likelihood) decreases when trees are added to the model, which is precisely the goal of gradient boosting. Here the training deviance is considered, that is deviance on the training set. This diagnostic does not allow to detect overfitting.
+
 ```{r,fig.height = 3,fig.width=5, fig.align = "center"}
-plot(fit$dev,type="l",lwd=2,xlab="Iteration",ylab="deviance")
+plot(fit)
 ```
 
-Let's see how the parameters depend on the covariates. In the below plot in blue are the estimated parameters and in red the true parameters plotted against $\overline{X}$.
+In this simulation study, the covariate are 2-dimensional but the parameters depend on the 1-dimensional index $\bar X$. As a graphical check, we plot in blue the estimated parameters and in red the true parameters against the index $\overline{X}$.
+
 ```{r,fig.height = 8,fig.width=6, fig.align = "center"}
 x_bar=apply(X^2, 1,mean)
-par(mfrow=c(2,1))
+par(mfrow=c(1,2))
 plot(x_bar,s,pch='.', col='red',ylim=c(range(c(s,exp(fit$theta$b)))),
      xlab="X bar",ylab="sigma")
 points(x_bar,exp(fit$theta$b),pch='.',col='blue')
@@ -178,62 +197,84 @@ plot(x_bar,g,pch='.', col='red',ylim=c(range(c(g,fit$theta$g))),
 points(x_bar,fit$theta$g,pch='.',col='blue')
 ```
 
-In practice we do not have the true parameters, hence we can not make the above plot. Though in order to inspect the model fit several graphs can be made. First we inspect what the contribution is of the different covariates. 
 
-For this we look at the permutation variable importance, which measures the increase in deviance when all values for a single covariate are permuted. These values for each covariate is then rescaled such that the largest is equal to $100$.
+We next describe two important diagnostic tools that are standard for random forest and boosting models: variable importance and partial dependentce plot.
+
+The permutation variable importance measures the increase in deviance when all values for a single covariate are permuted. The variable importance are rescaled so that the largest is equal to $100$.
+It is computed thanks to the $\texttt{variable\_importance}$ function with $\texttt{type="permutation"}$. 
+
 ```{r,fig.height = 3,fig.width=3, fig.align = "center"}
 variable_importance(fit,type="permutation")
 ```
 
-Additionally, instead of permutation variable importance we can inspect the relative importance of the variables for estimating the two variables.
+Alternatively,  variable importance can be computed by inspecting all the trees involved in the boosting model and recording the deviance decrease due to the different covariates. Because two sequence of trees are built, we get variable importance relatively two both parameters. The option $\texttt{type="relative"}$  is used for that purpose. Although our model is symmetric in $X_1$ and $X_2$, we can see that on this set of realizations, the variable $X_2$ has a slightly stronger contribution to the model.
 
 ```{r,fig.height = 3,fig.width=5, fig.align = "center"}
 variable_importance(fit,type="relative")
 ```
 
 
-Although the model is symmetric in $X_1$ and $X_2$ the $X_2$ variable appears to be more important for this set of realizations. 
-
-Finally, it would be of interest to investigate the dependence of the covariates on the parameters $\sigma$ and $\gamma$. Hereto a partial dependence plot gives some information about this.
+Finally, it is important to have an idea of the dependence of the parameters $\sigma$ and $\gamma$ with respect to the different covariates. The partial dependence plots are meant to provide such an information.
 ```{r,fig.height = 3,fig.width=6, fig.align = "center"}
 partial_dependence(fit,variable = 1)
 partial_dependence(fit,variable = 2)
 ```
 
+On this simulation study, the results are sensible. The model parameters are estimated reasonably well. The deviance is decreasing and the dependence on the covariates approximates the true dependence.
 
-\section{Cross validation with the gbex function}
-The model seems to fit the data rather well. The deviance is decreasing and the dependence of the covariates approximates the true dependence as we see from the simulation model. What we want to prevent is that the model starts overfitting, We will perform a cross validation to choose the optimal number of trees. We observe that by sampling the folds at random becomes a problem as different folds can potentially have very high or low number of extremes. As the extremes act as levarage points in the process we have decided to use a stratified approach to the division in folds. Denote the ordered observations by $Y_{(1)} \geq \ldots Y_{(n)}$, then for splitting in $k$ folds each group of $k$ observations is split among the folds, i.e. each variable in the sequence $(Y_{(k*j + 1)},Y_{(k*j + 2)}, \ldots ,Y_{(k*j + k)}$ is assigned a different fold.
 
-We can now perform a cross validation with the \textit{CV\_gbex} function. For this function we specify the maximum number of trees, which must be large enough such that we will not be underfitting the model.
+\section{Cross validation}
+\subsection{Cross validation for the number of trees}
+One major issue is to tune the parameters and select a good model. Crucial is the choice of $B$ and we want to avoid both underfitting and overfitting. For this, $k$-fold  cross-validation is commonly use.  We divide the sample into $k$-folds, leave out one fold for test and fit the model on the remaining $k-1$ folds. We monitor the deviance on the test fold when trees are added to model fitted on the training folds. 
+
+In the context of extreme value, it is knwon that extreme observations act as leverage points with a strong influence on maximum likelihood  estimators  (especially regarding the shape parameter $\gamma$). For this reason, we propose to use $k$-folds cross validation with stratification where the extreme values are evenly distributed into the different folds. The stratification is performed using the order statistics $Y_{(1)} \geq \ldots Y_{(n)}$ and each group of $k$ consecutive order statistics is randomly dispatched into the different folds. More precisely, the observations $(Y_{(k*j + 1)},Y_{(k*j + 2)}, \ldots ,Y_{(k*j + k)})$ are randomly assigned to different folds.
+
+The choice of $B$, the number of trees, is performed thanks to the $\texttt{CV\_gbex}$ function. The number of folds is indicated thanks to $\texttt{num\_folds= }$ and  $\texttt{stratified=}$ indicates wether stratification should be used for defining the $k$ folds. The argument $\texttt{par="B"}$ indicates that we perform cross-validation for $B$  and then a maximum number $\texttt{Bmax}$ of trees  must be specified. It must be large enough to prevent underfitted models. The $\texttt{plot}$ method then shows the mean deviance across the different folds and its minimum.
 
 ```{r}
- CV_fit = CV_gbex(y,X,num_folds = 6,par="B", Bmax=400, stratified=T, lambda=lambda, depth=depth, min_leaf_size=min_leaf_size, sf=sf,silent=T)
+CV_fit = CV_gbex(y, X, num_folds=6, Bmax=300, stratified=T, 
+                 lambda=lambda, depth=depth, min_leaf_size=min_leaf_size, sf=sf,silent=T)
 print(CV_fit)
+plot(CV_fit, what="general")
 ```
 
-A more intricate look of the cross validation is obtained by plotting the deviance for the different folds,
+
+A more in-depth look on the cross validation procedure is obtained by plotting the deviance in the different folds. In order to compare the folds more easily, the decrease of deviance with respect to the unconditional model (B=0) is plotted. Values lower (higher) than zero indicate a better (worse) performance compared to the unconditional model.
 ```{r}
-  plot(CV_fit,what="folds")
-```
-It is clear that the seperate folds are not clustered together, this can again be contributed to the extremes. A fold that does not behave well probably has a extreme observation $Y$ for which there are no comparable observations in the training data with similar covariate values. As a result the deviance curves of each fold have each very different intercepts related to how well the extremes in this fold are represented by the models. To obtain an informative picture we set all intercepts to 0. Values lower (higher) than zero indicate an better (worse) performance compared to the unconditional model.
+plot(CV_fit, what="per_fold")
 
+```
+
+
+For the purpose of comparison, let us see what we get without stratification.
+```{r}
+CV_fit = CV_gbex(y, X, num_folds=6, Bmax=300, stratified=F, 
+                 lambda=lambda, depth=depth, min_leaf_size=min_leaf_size, sf=sf,silent=T)
+print(CV_fit)
+plot(CV_fit, what="general")
+plot(CV_fit, what="per_fold")
+```
+
+
+
+
+
+\subsection{Cross validation for other parameters}
 Many of the other parameters are hard to optimize, but the cross validation routine can also be used to try and optimize these parameters. One of the most important parameters is the $lambda$ parameter. The $\sigma$ and $\gamma$ parameters depend in the optimization on each other. Taking too large steps with one will therefore negatively influence the other. For this reason we reperametrize $\lambda$ by $\lambda_{ratio} = \frac{\lambda_{sigma}}{\lambda_{gamma}}$ and $\lambda_{scale} = \lambda_{sigma}$. By choosing $\lambda_{scale}$ small enough we can use the cross validation function to find the optimal $\lambda_{ratio}$.
 
 ```{r}
 grid_lambda_ratio = c(2.5,5,10,15,25)
-CV_lambda_ratio = CV_gbex(y,X,num_folds = 2,par="lambda_ratio", Bmax=400,grid = grid_lambda_ratio, stratified=T, lambda_scale=0.01, depth=depth, min_leaf_size=min_leaf_size, sf=sf,silent=T)
+CV_lambda_ratio = CV_gbex(y,X,num_folds = 6,par_name="lambda_ratio", Bmax=300,par_grid = grid_lambda_ratio, stratified=T, lambda_scale=0.01, depth=depth, min_leaf_size=min_leaf_size, sf=sf,silent=T)
 print(CV_lambda_ratio)
 ```
 Where we can again have a look at cross validation results for the different parameter values,
 ```{r}
-plot(CV_lambda_ratio,what="all")
+plot(CV_lambda_ratio,what="general")
 ```
 It can be observed that different ratio's lead to different learning rates and therefore also the optimal number of trees is different. It is therefore important for each tuning parameter to allow for different values of $B$.
 
 
 
-\section{Some notes on the implementation of gbex}
-There are some choices made in the implementation that are worth discussing. First, it was observed that the algorithm is very unstable especially when tuning parameters are ill specified. As a result, it was observed that gradient steps sometimes are rather large leading to large decreases in deviance and sometimes negative $\sigma$ parameter. Therefore we bound the absolute value of the gradient step by the learning rate for that parameter. Additionally, we reparamaterize $\sigma = \exp(\beta)$ and rewrote all derivatives in terms of the $\beta$ parameter.
 
 
 
