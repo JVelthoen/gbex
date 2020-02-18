@@ -12,6 +12,7 @@ CV_gbex(
   par_name = NULL,
   par_grid = NULL,
   stratified = F,
+  ncores = parallel::detectCores(),
   ...
 )
 }
@@ -29,6 +30,8 @@ CV_gbex(
 \item{par_grid}{the grid of parameter values for par to do a gridsearch, either a list or vector (see details)}
 
 \item{stratified}{whether the cross validation procedure should use stratified sampling}
+
+\item{ncores}{number of cores to use for parallelization, if not specified cores are chosen by detectCores function from the parallel package}
 
 \item{...}{Other arguments to be passed to the gbex function (details)}
 }

@@ -9,6 +9,7 @@
 #' @param par_grid the grid of parameter values for par to do a gridsearch, either a list or vector (see details)
 #' @param Bmax the maximum number of trees
 #' @param stratified whether the cross validation procedure should use stratified sampling
+#' @param ncores number of cores to use for parallelization, if not specified cores are chosen by detectCores function from the parallel package
 #' @param ... Other arguments to be passed to the gbex function (details)
 #' @return A CV_gbex object
 #' @details Performs a cross validation grid search over the provided grid,
@@ -30,11 +31,11 @@
 #'
 #' In the ... the values of other tuning parameters are specified. If these are not supplied the standard values of gbex will be used
 #' @export
-CV_gbex <- function(y,X,num_folds,Bmax,par_name=NULL,par_grid=NULL,stratified=F,...){
+CV_gbex <- function(y,X,num_folds,Bmax,par_name=NULL,par_grid=NULL,stratified=F, ncores = parallel::detectCores(),...){
   if(is.null(par_name)){
-    CV_result = CV_normal(y,X,num_folds,Bmax,stratified,...)
+    CV_result = CV_normal(y,X,num_folds,Bmax,stratified,ncores,...)
   } else if(par_name %in% c("lambda","lambda_ratio","lambda_scale","depth","min_leaf_size","sf","alpha")){
-    CV_result = CV_par(y,X,num_folds,par_name,par_grid,Bmax,stratified,...)
+    CV_result = CV_par(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores,...)
   } else if(par_name == "B"){
     stop("For optimizing B leave par_name = NULL")
   } else{
