@@ -83,9 +83,9 @@ min_leaf_size = c(10,10)
 sf = 0.75
 depth = c(2,2)
 
-num_folds = 3
+num_folds = 8
 
-CV_fit = CV_gbex(y,X,num_folds,300,stratified=T,lambda=lambda,min_leaf_size=min_leaf_size,sf=sf,depth=depth)
+CV_fit = CV_gbex(y,X,num_folds,300,stratified=T,ncores = 8,lambda=lambda,min_leaf_size=min_leaf_size,sf=sf,depth=depth)
 
 print(CV_fit)
 

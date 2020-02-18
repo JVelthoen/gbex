@@ -73,14 +73,15 @@ divide_in_folds <- function(y,num_folds,stratified = F){
 #' @param num_folds the number of folds used to determine the optimal number of trees
 #' @param Bmax maximum number of trees used for finding the optimal
 #' @param stratified indicate whether stratified sampling should be used
+#' @param ncores number of cores to use for parallelization, if not specified cores are chosen by detectCores function from the parallel package
 #' @param ... Additional arguments supplied to gbex function
 #' @return A CV_gbex object
 #' @export
-CV_normal <- function(y,X,num_folds,Bmax,stratified,...){
+CV_normal <- function(y,X,num_folds,Bmax,stratified,ncores = parallel::detectCores(),...){
   arguments = list(...)
   folds = divide_in_folds(y,num_folds,stratified)
 
-  dev_matrix = sapply(1:num_folds,function(fold){
+  dev_list = parallel::mclapply(1:num_folds,function(fold){
     ytrain = y[folds!=fold]
     ytest = y[folds==fold]
     Xtrain = X[folds!=fold,]
@@ -90,7 +91,8 @@ CV_normal <- function(y,X,num_folds,Bmax,stratified,...){
     fit = do.call(gbex,arguments_gbex)
     dev = dev_per_step(fit,y=ytest,X=Xtest)
     return(dev)
-  })
+  },mc.cores=ncores)
+  dev_matrix = do.call("cbind",dev_list)
 
   dev = apply(dev_matrix,1,mean)
   B_opt = which(dev == min(dev))-1
@@ -112,28 +114,39 @@ CV_normal <- function(y,X,num_folds,Bmax,stratified,...){
 #' @param par_grid a grid to perform parameter optimization either a vector or a list
 #' @param Bmax maximum number of trees used for finding the optimal
 #' @param stratified indicate whether stratified sampling should be used
+#' @param ncores number of cores to use for parallelization, if not specified cores are chosen by detectCores function from the parallel package
 #' @param ... Additional arguments supplied to gbex function
 #' @return A CV_gbex object
 #' @export
-CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,...){
+CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores = parallel::detectCores(),...){
   arguments = list(...)
   folds = divide_in_folds(y,num_folds,stratified)
 
-  dev_matrix_list = lapply(1:num_folds,function(fold){
+  parallelization_list = unlist(lapply(1:num_folds,function(fold){
+    lapply(par_grid,function(par_value){
+      list(par_value = par_value,fold = fold)
+    })
+  }),recursive = F)
+
+
+  dev_list = parallel::mclapply(parallelization_list,function(job){
+    fold = job$fold
+    par_value = job$par_value
+
     ytrain = y[folds!=fold]
     ytest = y[folds==fold]
     Xtrain = X[folds!=fold,]
     Xtest = X[folds==fold,]
 
-    dev_matrix <- sapply(par_grid,function(par){
-      arguments_gbex = c(arguments,list(y=ytrain,X=Xtrain,B=Bmax))
-      arguments_gbex[[par_name]] = par
-      fit = do.call(gbex,arguments_gbex)
-      dev = dev_per_step(fit,y=ytest,X=Xtest)
-      return(dev)
-    })
-    return(dev_matrix)
-  })
+    arguments_gbex = c(arguments,list(y=ytrain,X=Xtrain,B=Bmax))
+    arguments_gbex[[par_name]] = par_value
+    fit = do.call(gbex,arguments_gbex)
+    dev = dev_per_step(fit,y=ytest,X=Xtest)
+    return(dev)
+  },mc.cores = ncores)
+
+  folds = sapply(parallelization_list,function(job){job$fold})
+  dev_matrix_list = tapply(dev_list,folds,function(dev){do.call("cbind",dev)})
 
   dev = Reduce("+",dev_matrix_list)/num_folds
   index_opt = which(apply(dev,2,min) == min(dev))

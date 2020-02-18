@@ -4,7 +4,15 @@
 \alias{CV_normal}
 \title{Cross validation to inspect performance of the  model}
 \usage{
-CV_normal(y, X, num_folds, Bmax, stratified, ...)
+CV_normal(
+  y,
+  X,
+  num_folds,
+  Bmax,
+  stratified,
+  ncores = parallel::detectCores(),
+  ...
+)
 }
 \arguments{
 \item{y}{Numeric vector of response}
@@ -16,6 +24,8 @@ CV_normal(y, X, num_folds, Bmax, stratified, ...)
 \item{Bmax}{maximum number of trees used for finding the optimal}
 
 \item{stratified}{indicate whether stratified sampling should be used}
+
+\item{ncores}{number of cores to use for parallelization, if not specified cores are chosen by detectCores function from the parallel package}
 
 \item{...}{Additional arguments supplied to gbex function}
 }
