@@ -11,7 +11,7 @@
 #' @export
 gradient_tree <- function(X,rr,rr2,depth,min_leaf_size){
   if(depth == 0){
-    ctrl = rpart::rpart.control(maxdepth = 1, minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = length(y))
+    ctrl = rpart::rpart.control(maxdepth = 1, minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = nrow(X))
   } else {
     ctrl = rpart::rpart.control(maxdepth = depth, minsplit=2, cp=0, maxcompete = 0,maxsurrogate = 0, minbucket = min_leaf_size)
   }
