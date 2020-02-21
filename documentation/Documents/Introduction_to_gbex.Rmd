@@ -167,7 +167,7 @@ B=250  # Number of trees
 lambda=c(0.01,0.0025) # Learning rate for sigma and gamma
 min_leaf_size=c(10,10) # Minimum_leaf_size of trees for sigma and gamma
 sf=0.75 # Subsampling fraction to use for each tree
-depth=c(2,2) # Maximum depth of trees for sigma and gamma
+depth=c(1,0) # Maximum depth of trees for sigma and gamma
 ```
 
 For fixed parameters, the \texttt{gbex} function is used to fit the boosting model. The model is fitted by gradient boosting using maximum likelihood when alpha = 0, and minimum power divergence when alpha>0.
@@ -204,7 +204,7 @@ The permutation variable importance measures the increase in deviance when all v
 It is computed thanks to the $\texttt{variable\_importance}$ function with $\texttt{type="permutation"}$. 
 
 ```{r,fig.height = 3,fig.width=3, fig.align = "center"}
-variable_importance(fit,type="permutation")
+  variable_importance(fit,type="permutation")
 ```
 
 Alternatively,  variable importance can be computed by inspecting all the trees involved in the boosting model and recording the deviance decrease due to the different covariates. Because two sequence of trees are built, we get variable importance relatively two both parameters. The option $\texttt{type="relative"}$  is used for that purpose. Although our model is symmetric in $X_1$ and $X_2$, we can see that on this set of realizations, the variable $X_2$ has a slightly stronger contribution to the model.
