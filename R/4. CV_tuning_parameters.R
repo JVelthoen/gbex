@@ -78,7 +78,7 @@ divide_in_folds <- function(y,num_folds,stratified = F){
 #' @param ... Additional arguments supplied to gbex function
 #' @return A CV_gbex object
 #' @export
-CV_normal <- function(y,X,num_folds,Bmax,stratified,ncores = parallel::detectCores(),...){
+CV_normal <- function(y,X,num_folds,Bmax,stratified,ncores,...){
   arguments = list(...)
   folds = divide_in_folds(y,num_folds,stratified)
 
@@ -119,7 +119,7 @@ CV_normal <- function(y,X,num_folds,Bmax,stratified,ncores = parallel::detectCor
 #' @param ... Additional arguments supplied to gbex function
 #' @return A CV_gbex object
 #' @export
-CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores = parallel::detectCores(),...){
+CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores,...){
   arguments = list(...)
   folds = divide_in_folds(y,num_folds,stratified)
 
