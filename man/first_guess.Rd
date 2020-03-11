@@ -4,10 +4,12 @@
 \alias{first_guess}
 \title{Make the first guess of GPD parameters}
 \usage{
-first_guess(y)
+first_guess(y, gamma_positive)
 }
 \arguments{
 \item{y}{A vector of observations}
+
+\item{gamma_positive}{boolean indicating whether gamma should be positive}
 }
 \value{
 Returning a data frame with in each of the length(y) rows the estimated parameters.

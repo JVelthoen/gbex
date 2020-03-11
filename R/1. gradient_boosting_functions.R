@@ -10,6 +10,7 @@
 #' @param B Number of gradient boosting steps
 #' @param depth Maximum depth of the trees
 #' @param sf  sample fraction used for fitting the trees
+#' @param gamma_positive boolean indicating whether gamma should be positive
 #' @param alpha the power for power divergence (default alpha = 0 meaning maximum likelihood is used)
 #' @param silent boolean indicating whether progress during fitting procedure should be printed.
 #' @param save_data boolean indicating whether data should be saved.
@@ -27,48 +28,57 @@
 #' @export
 gbex <- function(y,X,B=180,lambda=NULL,
                  lambda_ratio = 15, lambda_scale = 0.01,
-                 depth=c(2,2),min_leaf_size=c(30,30),sf=0.5,
+                 depth=c(2,2),min_leaf_size=c(30,30),sf=0.8,
+                 gamma_positive = F,
                  alpha = 0,silent=F, save_data = T){
   if(!is.data.frame(X)) X = data.frame(X=X)
   if(!silent){
     cat("Fit gbex\n")
     pb = txtProgressBar(style = 3,width = 76)
   }
+  if(is.null(lambda)){
+    lambda = lambda_scale*c(1,1/lambda_ratio)
+  }
+
   n = length(y)
   covariates = colnames(X)
   data = cbind(y,X)
   colnames(data) = c("y",covariates)
 
-  if(is.null(lambda)){
-    lambda = lambda_scale*c(1,1/lambda_ratio)
-  }
   # First parameters are the unconditional tail parameters
-  theta_init = first_guess(y)
+  theta_init = first_guess(y,gamma_positive)
+
+  # Transofrmation of the paramters in order to fit the model with the right constrains
+  theta_init_t = transform_parameters(theta_init,gamma_positive,inverse_transform=T)
 
   # Create a data.frame used for the boosting procedure with data, parameters, first and second derivatives
-  boosting_df = get_boosting_df(data,theta_init,alpha)
+  boosting_df = get_boosting_df(data,theta_init_t,alpha,gamma_positive)
 
   # Save the results of the boosting steps
   # TREES contains the boosting trees
   # dev contains the deviance for each iteration
-  trees_beta = trees_gamma = list()
+  trees_sigma = trees_gamma = list()
   dev=rep(mean(boosting_df$dev),B+1)
-  for (b in 1:B){
+  for(b in 1:B){
     # Take a subsample from the entire data.frame
-    tree_df = boosting_df[sample(1:n,sf*n,replace=F),]
+    subsample_index = sample(1:n,round(sf*n),replace=F)
 
     # Fit gradient trees for sigma and gamma parameter
-    tree_beta = gradient_tree(tree_df[covariates], tree_df$r_b,tree_df$r2_b, depth[1], min_leaf_size[1])
-    tree_gamma = gradient_tree(tree_df[covariates], tree_df$r_g,tree_df$r2_g, depth[2], min_leaf_size[2])
+    tree_sigma = gradient_tree(boosting_df[subsample_index,covariates],
+                               boosting_df$r_st[subsample_index],
+                               boosting_df$r2_st[subsample_index], depth[1], min_leaf_size[1])
+    tree_gamma = gradient_tree(boosting_df[subsample_index,covariates],
+                               boosting_df$r_gt[subsample_index],
+                               boosting_df$r2_gt[subsample_index], depth[2], min_leaf_size[2])
 
     # Use the estimated trees to update the parameters
-    theta_hat = update_parameters(tree_beta,tree_gamma,boosting_df,lambda)
+    theta_hat = update_parameters(tree_sigma,tree_gamma,boosting_df,lambda)
 
     # create a new data.frame with updated derivatives
-    boosting_df = get_boosting_df(data,theta_hat,alpha)
+    boosting_df = get_boosting_df(data,theta_hat,alpha,gamma_positive)
 
     # Save the estimated trees and the deviance
-    trees_beta[[b]] = tree_beta
+    trees_sigma[[b]] = tree_sigma
     trees_gamma[[b]] = tree_gamma
     dev[b+1] = mean(boosting_df$dev)
 
@@ -77,13 +87,17 @@ gbex <- function(y,X,B=180,lambda=NULL,
     }
   }
 
+  ## Transform the parameters back to orginal values of parameters
+  theta_hat = transform_parameters(theta_hat,gamma_positive,inverse_transform=F)
+
   func_call = match.call()
 
   output = list(theta = theta_hat, dev = dev,
-                 trees_beta = trees_beta, trees_gamma = trees_gamma,
-                 theta_init= theta_init[1,],
-                 lambda=lambda,B=B,depth=depth,alpha=alpha,
-                 call = func_call)
+                trees_sigma = trees_sigma, trees_gamma = trees_gamma,
+                theta_init= theta_init[1,],
+                gamma_positive = gamma_positive,
+                lambda=lambda,B=B,depth=depth,alpha=alpha,
+                call = func_call)
 
   if(save_data){
     output$y = y
@@ -117,6 +131,7 @@ predict.gbex <- function(object, newdata = NULL,probs = NULL,what="par",Blim=NUL
     Blim = object$B
   } else if(Blim > object$B){
     Blim = object$B
+    warning("The gbex object does not contain so many trees")
   } else{
     Blim = round(Blim)
   }
@@ -124,11 +139,15 @@ predict.gbex <- function(object, newdata = NULL,probs = NULL,what="par",Blim=NUL
   if(is.null(newdata) & Blim == object$B){
     theta = object$theta
   } else {
-    beta_updates = lapply(object$trees_beta,predict,newdata=newdata)[1:Blim]
+    theta_init = transform_parameters(object$theta_init,object$gamma_positive,inverse_transform=T)
+
+    sigma_updates = lapply(object$trees_sigma,predict,newdata=newdata)[1:Blim]
     gamma_updates = lapply(object$trees_gamma,predict,newdata=newdata)[1:Blim]
 
-    theta = data.frame(b = object$theta_init$b - object$lambda[1]*Reduce("+",beta_updates),
-                       g= object$theta_init$g - object$lambda[2]*Reduce("+",gamma_updates))
+    theta_transformed = data.frame(st = theta_init$st - object$lambda[1]*Reduce("+",sigma_updates),
+                                   gt = theta_init$gt - object$lambda[2]*Reduce("+",gamma_updates))
+
+    theta = transform_parameters(theta_transformed,object$gamma_positive,inverse_transform=F)
   }
 
   if(what == "par"){
@@ -138,7 +157,7 @@ predict.gbex <- function(object, newdata = NULL,probs = NULL,what="par",Blim=NUL
       warning("probs needs specification for quantile prediction, using probs = 0.99")
       probs = 0.99
     }
-      quant <- sapply(probs,function(p,s,g) (s/g) * ( (1-p)^(-g) - 1),s = exp(theta$b),g = theta$g)
+      quant <- sapply(probs,function(p,s,g) (s/g) * ( (1-p)^(-g) - 1),s = theta$s,g = theta$g)
       return(quant)
   } else {
     stop("This specification of par is not defined")
@@ -192,24 +211,31 @@ dev_per_step <- function(object,y=NULL,X=NULL){
   if(is.null(X)){
     dev = object$dev
   } else{
-    beta_updates = cbind(0,do.call('cbind',lapply(object$trees_beta,predict,newdata=X)))
+    theta_init = transform_parameters(object$theta_init,object$gamma_positive,inverse_transform=T)
+
+    sigma_updates = cbind(0,do.call('cbind',lapply(object$trees_sigma,predict,newdata=X)))
     gamma_updates = cbind(0,do.call('cbind',lapply(object$trees_gamma,predict,newdata=X)))
 
-    beta_per_step = object$theta_init$b - object$lambda[1]*apply(beta_updates,1,cumsum)
-    gamma_per_step = object$theta_init$g - object$lambda[2]*apply(gamma_updates,1,cumsum)
+    sigma_per_step = theta_init$st - object$lambda[1]*apply(sigma_updates,1,cumsum)
+    gamma_per_step = theta_init$gt - object$lambda[2]*apply(gamma_updates,1,cumsum)
 
-    divergence_input = cbind(exp(as.vector(t(beta_per_step))),as.vector(t(gamma_per_step)),rep(y,object$B+1))
+    theta_input = transform_parameters(data.frame(st = as.vector(sigma_per_step),
+                                                  gt = as.vector(gamma_per_step)),
+                                       object$gamma_positive, inverse_transform=F)
+
+    divergence_input = cbind(theta_input,as.vector(sapply(y,rep,times=object$B+1)))
     if(object$alpha == 0){
       dev_vec = apply(divergence_input,1,GP_dev)
-      dev_matrix = matrix(dev_vec,ncol=nrow(beta_per_step))
-      dev = apply(dev_matrix,2,mean)
+      dev_matrix = matrix(dev_vec,nrow=nrow(sigma_per_step))
+      dev = apply(dev_matrix,1,mean)
     } else{
+      alpha = object$alpha
       A = apply(divergence_input,1,A_func)
       B = apply(divergence_input,1,B_func)
       divergence_input_PD = cbind(divergence_input,A,B)
       dev_vec = apply(divergence_input_PD,1,function(x) PD_dev(x[1:3],x[4],x[5],alpha))
-      dev_matrix = matrix(dev_vec,ncol=nrow(beta_per_step))
-      dev = apply(dev_matrix,2,mean)
+      dev_matrix = matrix(dev_vec,nrow=nrow(sigma_per_step))
+      dev = apply(dev_matrix,1,mean)
     }
   }
   return(dev)

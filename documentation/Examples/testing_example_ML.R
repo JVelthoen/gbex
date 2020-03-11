@@ -23,11 +23,15 @@ sf=0.75 # The subsample fraction used for estimating each tree (in a single step
 
 
 ## ESTIMATING THE MODEL AND PRINTING OUR SIMPLE FIGURES
-fit <- gbex(y,X,B=B,lambda=lambda,depth=depth,min_leaf_size=min_leaf_size,sf=sf)
+fit <- gbex(y,X,B=B,lambda=lambda,depth=depth,min_leaf_size=min_leaf_size,sf=sf,gamma_positive = T)
 
 print(fit)
+plot(fit)
+partial_dependence(fit,variable = 1)
 partial_dependence(fit,variable = 2)
 variable_importance(fit,type="permutation")
+variable_importance(fit,type="relative")
+
 
 theta <- predict(fit,newdata=X)
 
@@ -83,7 +87,7 @@ min_leaf_size = c(10,10)
 sf = 0.75
 depth = c(2,2)
 
-num_folds = 8
+num_folds = 4
 
 CV_fit = CV_gbex(y,X,num_folds,300,stratified=T,ncores = 8,lambda=lambda,min_leaf_size=min_leaf_size,sf=sf,depth=depth)
 

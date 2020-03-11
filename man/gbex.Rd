@@ -13,7 +13,8 @@ gbex(
   lambda_scale = 0.01,
   depth = c(2, 2),
   min_leaf_size = c(30, 30),
-  sf = 0.5,
+  sf = 0.8,
+  gamma_positive = F,
   alpha = 0,
   silent = F,
   save_data = T
@@ -35,6 +36,8 @@ gbex(
 \item{depth}{Maximum depth of the trees}
 
 \item{sf}{sample fraction used for fitting the trees}
+
+\item{gamma_positive}{boolean indicating whether gamma should be positive}
 
 \item{alpha}{the power for power divergence (default alpha = 0 meaning maximum likelihood is used)}
 

@@ -1,3 +1,15 @@
+#' Simulate data from gpd distribution
+#'
+#' @param n number of observations
+#' @param s sigma parameter for each observation
+#' @param g gamma parameter for each observation
+#' @return simulated data from gpd with specified parameter
+#' @export
+sim_gpd_data <- function(n,s,g){
+  y= s*(runif(n)^(-g)-1)/g
+  return(y)
+}
+
 #' Simulate a dataset
 #'
 #' @param n number of observations

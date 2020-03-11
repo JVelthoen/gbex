@@ -18,9 +18,22 @@ variable_importance <- function(object,type){
                      plot.title = ggplot2::element_text(hjust = 0.5),
                      panel.border = ggplot2::element_rect(fill=NA))
   } else if(type == "relative"){
-    data = data.frame(VI=c(VI$sigma,VI$gamma),
-                            par = c(rep("sigma",length(VI$sigma)),rep("gamma",length(VI$gamma))),
-                            var = c(names(VI$sigma),names(VI$gamma)))
+    if(!(is.null(VI$gamma) & is.null(VI$sigma))){
+      data = data.frame(VI=c(VI$sigma,VI$gamma),
+                        par = c(rep("sigma",length(VI$sigma)),rep("gamma",length(VI$gamma))),
+                        var = c(names(VI$sigma),names(VI$gamma)))
+    } else if(!is.null(VI$sigma)){
+      data = data.frame(VI= VI$sigma,
+                        par = rep("sigma",length(VI$sigma)),
+                        var = names(VI$sigma))
+    } else if(!is.null(VI$sigma)){
+      data = data.frame(VI= VI$gamma,
+                        par = rep("gamma",length(VI$gamma)),
+                        var = names(VI$gamma))
+    } else{
+      stop("Importance is not defined for a model with (0,0) depth")
+    }
+
     g = ggplot2::ggplot(data,ggplot2::aes(x=var,y=VI)) +
       ggplot2::geom_bar(stat="identity") +
       ggplot2::labs(title="Relative importance", x = "Variable", y = "Importance") +
@@ -48,13 +61,21 @@ calc_VI <- function(object,type=c("relative","permutation")){
 
   var_names = colnames(object$X)
   if(type == "relative"){
-    VI_per_tree = sapply(object$trees_beta,VI_relative_tree,var_names=var_names)
-    VI_sigma = apply(VI_per_tree,1,sum)
-    VI_sigma = VI_sigma/max(VI_sigma) * 100
+    if(object$depth[1] > 0){
+      VI_per_tree = sapply(object$trees_sigma,VI_relative_tree,var_names=var_names)
+      VI_sigma = apply(VI_per_tree,1,sum)
+      VI_sigma = VI_sigma/max(VI_sigma) * 100
+    } else {
+      VI_sigma = NULL
+    }
 
-    VI_per_tree = sapply(object$trees_gamma,VI_relative_tree,var_names=var_names)
-    VI_gamma = apply(VI_per_tree,1,sum)
-    VI_gamma = VI_gamma/max(VI_gamma) * 100
+    if(object$depth[2] > 0){
+      VI_per_tree = sapply(object$trees_gamma,VI_relative_tree,var_names=var_names)
+      VI_gamma = apply(VI_per_tree,1,sum)
+      VI_gamma = VI_gamma/max(VI_gamma) * 100
+    } else{
+      VI_gamma = NULL
+    }
     VI = list(sigma = VI_sigma, gamma = VI_gamma, type=type)
   } else if(type == "permutation"){
     VI_dev = sapply(var_names,VI_permutation,object= object)

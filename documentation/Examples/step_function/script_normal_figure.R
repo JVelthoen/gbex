@@ -2,8 +2,6 @@ library(gbex)
 library(grf)
 library(tidyverse)
 
-sim_nr = 1
-
 ### Simulation parameters
 n = 500
 tau_thresh = 0.75
