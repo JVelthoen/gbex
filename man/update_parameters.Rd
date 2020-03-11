@@ -4,10 +4,10 @@
 \alias{update_parameters}
 \title{Update parameters}
 \usage{
-update_parameters(tree_beta, tree_gamma, boosting_df, lambda)
+update_parameters(tree_sigma, tree_gamma, boosting_df, lambda)
 }
 \arguments{
-\item{tree_beta}{A gradient tree object fitted for sigma parameter}
+\item{tree_sigma}{A gradient tree object fitted for sigma parameter}
 
 \item{tree_gamma}{A gradient tree object fitted for gamma parameter}
 

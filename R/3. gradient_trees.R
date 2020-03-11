@@ -52,18 +52,19 @@ predict.gradient_tree <- function(object,newdata=NULL){
 #'
 #' Take a single gradient step for both gamma and sigma parameters
 #'
-#' @param tree_beta A gradient tree object fitted for sigma parameter
+#' @param tree_sigma A gradient tree object fitted for sigma parameter
 #' @param tree_gamma A gradient tree object fitted for gamma parameter
 #' @param boosting_df the boosting_df
 #' @param lambda a vector with the learning rate of sigma and gamma
 #' @return A data frame with the udpated parameters sigma and gamma
 #' @export
-update_parameters <- function(tree_beta,tree_gamma,boosting_df,lambda){
-  update_beta = -lambda[1]*predict(tree_beta,boosting_df)
+update_parameters <- function(tree_sigma,tree_gamma,boosting_df,lambda){
+  update_sigma = -lambda[1]*predict(tree_sigma,boosting_df)
   update_gamma = -lambda[2]*predict(tree_gamma,boosting_df)
 
-  theta <- data.frame(b = boosting_df$b + update_beta ,g = boosting_df$g + update_gamma)
+  theta <- data.frame(st = boosting_df$st + update_sigma, gt = boosting_df$gt + update_gamma)
   return(theta)
 }
+
 
 

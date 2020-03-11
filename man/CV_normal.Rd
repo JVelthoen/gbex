@@ -4,15 +4,7 @@
 \alias{CV_normal}
 \title{Cross validation to inspect performance of the  model}
 \usage{
-CV_normal(
-  y,
-  X,
-  num_folds,
-  Bmax,
-  stratified,
-  ncores = parallel::detectCores(),
-  ...
-)
+CV_normal(y, X, num_folds, Bmax, stratified, ncores, ...)
 }
 \arguments{
 \item{y}{Numeric vector of response}

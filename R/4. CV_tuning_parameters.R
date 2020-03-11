@@ -146,8 +146,8 @@ CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores,...){
     return(dev)
   },mc.cores = ncores)
 
-  folds = sapply(parallelization_list,function(job){job$fold})
-  dev_matrix_list = tapply(dev_list,folds,function(dev){do.call("cbind",dev)})
+  job_fold = sapply(parallelization_list,function(job){job$fold})
+  dev_matrix_list = tapply(dev_list,job_fold,function(dev){do.call("cbind",dev)})
 
   dev = Reduce("+",dev_matrix_list)/num_folds
   index_opt = which(apply(dev,2,min) == min(dev))

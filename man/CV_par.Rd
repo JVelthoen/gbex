@@ -4,17 +4,7 @@
 \alias{CV_par}
 \title{Cross validation for a parameter in gbex function}
 \usage{
-CV_par(
-  y,
-  X,
-  num_folds,
-  par_name,
-  par_grid,
-  Bmax,
-  stratified,
-  ncores = parallel::detectCores(),
-  ...
-)
+CV_par(y, X, num_folds, par_name, par_grid, Bmax, stratified, ncores, ...)
 }
 \arguments{
 \item{y}{Numeric vector of response}

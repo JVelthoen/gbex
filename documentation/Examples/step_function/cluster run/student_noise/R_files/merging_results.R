@@ -10,8 +10,8 @@ thresh = rep(c(rep(0.75,5),rep(0.8,5),rep(0.85,5)),2)
 
 index_1000_75 = which(n==1000 & thresh == 0.75)
 index_1000_85 = which(n==1000 & thresh == 0.85)
-index_2000_75 = which(n==1000 & thresh == 0.75)
-index_2000_85 = which(n==1000 & thresh == 0.85)
+index_2000_75 = which(n==2000 & thresh == 0.75)
+index_2000_85 = which(n==2000 & thresh == 0.85)
 
 table_1000_75 = Reduce("+",sim_res[index_1000_75])/5
 table_1000_85 = Reduce("+",sim_res[index_1000_85])/5
@@ -19,7 +19,7 @@ table_2000_75 = Reduce("+",sim_res[index_2000_75])/5
 table_2000_85 = Reduce("+",sim_res[index_2000_85])/5
 
 ## making latex output
-temp = table_1000_85[-1] %>% t()
+temp = table_2000_85[-1] %>% t()
 
 latex_matrix = as.matrix(cbind(cbind(temp[1:3,1],temp[7:9,1],temp[4:6,1],temp[10:12,1]),cbind(temp[1:3,2],temp[7:9,2],temp[4:6,2],temp[10:12,2])))
 rownames(latex_matrix) = NULL

@@ -11,13 +11,13 @@ calc_PD <- function(object,var_name){
 
   values = sort(unique(as.vector(object$X[[var_name]])))
 
-  PD_per_tree = sapply(object$trees_beta,PD_tree,var_name=var_name,values=values)
-  sigma = exp(apply(PD_per_tree,1,sum)*object$lambda[1] + object$theta_init$b)
-
-  PD_per_tree = sapply(object$trees_gamma,PD_tree,var_name=var_name,values=values)
-  gamma = apply(PD_per_tree,1,sum)*object$lambda[2] + object$theta_init$g
-
-  PD = list(sigma=sigma,gamma=gamma,values=values)
+  theta_init = transform_parameters(object$theta_init,object$gamma_positive,inverse_transform=T)
+  PD_per_tree_sigma = sapply(object$trees_sigma,PD_tree,var_name=var_name,values=values)
+  PD_per_tree_gamma = sapply(object$trees_gamma,PD_tree,var_name=var_name,values=values)
+  PD_transformed = data.frame(st = apply(PD_per_tree_sigma,1,sum)*object$lambda[1] + theta_init$st,
+                              gt = apply(PD_per_tree_gamma,1,sum)*object$lambda[2] + theta_init$gt)
+  PD = transform_parameters(PD_transformed,object$gamma_positive,inverse_transform=F)
+  PD$values = values
   return(PD)
 }
 
@@ -39,8 +39,8 @@ partial_dependence <- function(object,variable){
     stop("Variable name is not recognized.")
   }
   PD = calc_PD(object,variable)
-  data1 = data.frame(values = PD$values,PD = PD$sigma)
-  data2 = data.frame(values = PD$values,PD = PD$gamma)
+  data1 = data.frame(values = PD$values,PD = PD$s)
+  data2 = data.frame(values = PD$values,PD = PD$g)
 
   g1 = ggplot2::ggplot(data1,ggplot2::aes(x=values,y=PD)) +
     ggplot2::geom_line(lwd=1.5) +
