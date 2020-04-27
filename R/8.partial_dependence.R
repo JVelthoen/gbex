@@ -14,8 +14,8 @@ calc_PD <- function(object,var_name){
   theta_init = transform_parameters(object$theta_init,object$gamma_positive,inverse_transform=T)
   PD_per_tree_sigma = sapply(object$trees_sigma,PD_tree,var_name=var_name,values=values)
   PD_per_tree_gamma = sapply(object$trees_gamma,PD_tree,var_name=var_name,values=values)
-  PD_transformed = data.frame(st = apply(PD_per_tree_sigma,1,sum)*object$lambda[1] + theta_init$st,
-                              gt = apply(PD_per_tree_gamma,1,sum)*object$lambda[2] + theta_init$gt)
+  PD_transformed = data.frame(st = theta_init$st - apply(PD_per_tree_sigma,1,sum)*object$lambda[1],
+                              gt = theta_init$gt -apply(PD_per_tree_gamma,1,sum)*object$lambda[2])
   PD = transform_parameters(PD_transformed,object$gamma_positive,inverse_transform=F)
   PD$values = values
   return(PD)
@@ -76,24 +76,27 @@ PD_tree <- function(tree,var_name,values){
   tree_splits = tree$tree$splits
   update_table = tree$update_table
 
-  PD_df = tree_frame[c("var","n")]
-  PD_df$node_nr = as.numeric(rownames(tree_frame))
-  PD_df$node_value = rep(NA,nrow(PD_df))
-  PD_df$min = min(values)
-  PD_df$max = max(values)+0.1
+  PD_df = data.frame(tree_frame[c("var","n")],
+                     node_nr = as.numeric(rownames(tree_frame)),
+                     node_value = rep(NA,nrow(tree_frame)),
+                     min = min(values),
+                     max = max(values)+0.1)
   split_counter = 0
+
   for(row in 1:nrow(PD_df)){
     if(PD_df$var[row] == "<leaf>"){
       PD_df$node_value[row] = update_table$update[match(row,update_table$leaf)]
     } else if(PD_df$var[row] == var_name){
       split_counter = split_counter + 1
       child_index = match(PD_df$node_nr[row]*2 + (0:1),PD_df$node_nr)
+      if(tree_splits[split_counter,2] == 1) child_index = rev(child_index)
       PD_df$n[child_index] = PD_df$n[row]
       PD_df$min[child_index] = c(PD_df$min[row],tree_splits[split_counter,4])
       PD_df$max[child_index] = c(tree_splits[split_counter,4],PD_df$max[row])
     } else{
       split_counter = split_counter + 1
       child_index = match(PD_df$node_nr[row]*2 + (0:1),PD_df$node_nr)
+      if(tree_splits[split_counter,2] == 1) child_index = rev(child_index)
       PD_df$n[child_index] = PD_df$n[row]*(tree_frame$n[child_index]/tree_frame$n[row])
       PD_df$min[child_index] = rep(PD_df$min[row],2)
       PD_df$max[child_index] = rep(PD_df$max[row],2)
