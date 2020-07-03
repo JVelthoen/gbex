@@ -2,18 +2,22 @@
 % Please edit documentation in R/8. variable_importance.R
 \name{variable_importance}
 \alias{variable_importance}
-\title{Calculate variable importance for a gbex object}
+\title{Make a figure of the variable importance}
 \usage{
-variable_importance(object, type = "relative")
+variable_importance(object, type = "relative", scaled = T)
 }
 \arguments{
 \item{object}{A gbex object}
+
+\item{type}{the type of variable importance to compute choose from c("relative","permutation")}
+
+\item{scaled}{boolean indicating if the importance is scaled between 0 and 100}
 }
 \value{
 A plot with an ordered histogram of the scaled variable importance measures
 }
 \description{
-Calculate variable importance for a gbex object
+Make a figure of the variable importance
 }
 \details{
 In the case of relative importance two figures are supplied with the importance for sigma and for gamma.
