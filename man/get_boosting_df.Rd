@@ -4,14 +4,12 @@
 \alias{get_boosting_df}
 \title{Boosting DF}
 \usage{
-get_boosting_df(data, theta, alpha, gamma_positive)
+get_boosting_df(data, theta, gamma_positive)
 }
 \arguments{
 \item{data}{A data frame with the response and covariates}
 
 \item{theta}{The parameter values for each observation}
-
-\item{alpha}{The power for the divergence if 0 then maximum likelihood is used (default 0)}
 
 \item{gamma_positive}{boolean indicating whether gamma should be positive}
 }

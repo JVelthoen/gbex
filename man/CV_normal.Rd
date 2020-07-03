@@ -4,7 +4,7 @@
 \alias{CV_normal}
 \title{Cross validation to inspect performance of the  model}
 \usage{
-CV_normal(y, X, num_folds, Bmax, stratified, ncores, ...)
+CV_normal(y, X, num_folds, Bmax, loss_func, tau_loss, stratified, ncores, ...)
 }
 \arguments{
 \item{y}{Numeric vector of response}
@@ -14,6 +14,10 @@ CV_normal(y, X, num_folds, Bmax, stratified, ncores, ...)
 \item{num_folds}{the number of folds used to determine the optimal number of trees}
 
 \item{Bmax}{maximum number of trees used for finding the optimal}
+
+\item{loss_func}{loss function used for selecting optimal model}
+
+\item{tau_loss}{probability level for quantile loss only used for quantile loss}
 
 \item{stratified}{indicate whether stratified sampling should be used}
 

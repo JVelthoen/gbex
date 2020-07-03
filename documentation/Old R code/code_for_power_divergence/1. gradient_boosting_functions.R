@@ -11,6 +11,7 @@
 #' @param depth Maximum depth of the trees
 #' @param sf  sample fraction used for fitting the trees
 #' @param gamma_positive boolean indicating whether gamma should be positive
+#' @param alpha the power for power divergence (default alpha = 0 meaning maximum likelihood is used)
 #' @param silent boolean indicating whether progress during fitting procedure should be printed.
 #' @param VI_type character vector indicating which variable importance should be calculated (when VI_type = NULL no variable importance is calculated)
 #' @return gbex returns an object of class "gbex" which contains the following components:
@@ -21,6 +22,7 @@
 #' \item{lambda}{Numeric with the learining rate of sigma and gamma}
 #' \item{B}{Numeric with number of trees}
 #' \item{depth}{Numeric with maximum tree depth for sigma and gamma}
+#' \item{alpha}{Power divergence parameter used}
 #' @details Instead of specifying the learning rates lambda for sigma and gamma seperately the ratio of the two can be specified together with the size of the first one.
 #' This can be done using lambda_ratio and lambda_scale. The used lambda is then given by lambda_scale*(1,1/lambda_ratio).
 #' @export
@@ -28,7 +30,7 @@ gbex <- function(y,X,B=100,lambda=NULL,
                  lambda_ratio = 10, lambda_scale = 0.01,
                  depth=c(1,1),min_leaf_size=c(30,30),sf=0.75,
                  gamma_positive = T,
-                 silent=F, VI_type = NULL){
+                 alpha = 0,silent=F, VI_type = NULL){
   if(!is.data.frame(X)) X = data.frame(X=X)
   if(!silent){
     cat("Fit gbex\n")
@@ -53,7 +55,7 @@ gbex <- function(y,X,B=100,lambda=NULL,
   theta_init_t = transform_parameters(theta_init,gamma_positive,inverse_transform=T)
 
   # Create a data.frame used for the boosting procedure with data, parameters, first and second derivatives
-  boosting_df = get_boosting_df(data,theta_init_t,gamma_positive)
+  boosting_df = get_boosting_df(data,theta_init_t,alpha,gamma_positive)
 
   # Save the results of the boosting steps
   # TREES contains the boosting trees
@@ -81,7 +83,7 @@ gbex <- function(y,X,B=100,lambda=NULL,
       theta_hat = update_parameters(tree_sigma,tree_gamma,boosting_df,lambda)
 
       # create a new data.frame with updated derivatives
-      boosting_df = get_boosting_df(data,theta_hat,gamma_positive)
+      boosting_df = get_boosting_df(data,theta_hat,alpha,gamma_positive)
 
       # Save the estimated trees and the deviance
       trees_sigma[[b]] = tree_sigma
@@ -105,13 +107,13 @@ gbex <- function(y,X,B=100,lambda=NULL,
                 trees_sigma = trees_sigma, trees_gamma = trees_gamma,
                 theta_init= theta_init[1,],
                 gamma_positive = gamma_positive,
-                lambda=lambda,B=B,depth=depth,
+                lambda=lambda,B=B,depth=depth,alpha=alpha,
                 subsamples = subsample_indices,
                 data = data,
                 call = func_call)
   class(output) = "gbex"
 
-  if(!is.null(VI_type)){
+  if(!is.null(VI_v)){
     output$variable_importance = calc_VI(output,type=VI_type)
   }
 
@@ -179,7 +181,12 @@ predict.gbex <- function(object, newdata = NULL,probs = NULL,what="par",Blim=NUL
 #' @export
 print.gbex <- function(object){
   cat(paste0(deparse(object$call),"\n"))
-  cat("A gradient boosting model for extremes fitted by likelihood.\n")
+  cat("A gradient boosting model for extremes fitted by ")
+  if(object$alpha == 0){
+    cat("likelihood.\n")
+  } else{
+    cat(paste0("power divergence with alpha = ",object$alpha,".\n"))
+  }
   cat(paste0(object$B," trees are fitted.\n"))
   cat(paste0("Training error was equal to ",object$dev[length(object$dev)],".\n"))
 }
@@ -231,9 +238,19 @@ dev_per_step <- function(object,y=NULL,X=NULL){
     }
 
     divergence_input = cbind(theta_input,as.vector(sapply(y,rep,times=object$B+1)))
-    dev_vec = apply(divergence_input,1,GP_dev)
-    dev_matrix = matrix(dev_vec,nrow=object$B+1)
-    dev = apply(dev_matrix,1,mean)
+    if(object$alpha == 0){
+      dev_vec = apply(divergence_input,1,GP_dev)
+      dev_matrix = matrix(dev_vec,nrow=object$B+1)
+      dev = apply(dev_matrix,1,mean)
+    } else{
+      alpha = object$alpha
+      A = apply(divergence_input,1,A_func)
+      B = apply(divergence_input,1,B_func)
+      divergence_input_PD = cbind(divergence_input,A,B)
+      dev_vec = apply(divergence_input_PD,1,function(x) PD_dev(x[1:3],x[4],x[5],alpha))
+      dev_matrix = matrix(dev_vec,nrow=nrow(sigma_per_step))
+      dev = apply(dev_matrix,1,mean)
+    }
   }
   return(dev)
 }

@@ -27,6 +27,7 @@ gradient_tree <- function(X,rr,rr2,depth,min_leaf_size){
   return(gradient_tree)
 }
 
+
 #' Get the gradient update for each leafnode
 #'
 #' @param object A gradient tree object

@@ -7,17 +7,16 @@
 gbex(
   y,
   X,
-  B = 180,
+  B = 100,
   lambda = NULL,
-  lambda_ratio = 15,
+  lambda_ratio = 10,
   lambda_scale = 0.01,
-  depth = c(2, 2),
+  depth = c(1, 1),
   min_leaf_size = c(30, 30),
-  sf = 0.8,
-  gamma_positive = F,
-  alpha = 0,
+  sf = 0.75,
+  gamma_positive = T,
   silent = F,
-  save_data = T
+  VI_type = NULL
 )
 }
 \arguments{
@@ -39,11 +38,9 @@ gbex(
 
 \item{gamma_positive}{boolean indicating whether gamma should be positive}
 
-\item{alpha}{the power for power divergence (default alpha = 0 meaning maximum likelihood is used)}
-
 \item{silent}{boolean indicating whether progress during fitting procedure should be printed.}
 
-\item{save_data}{boolean indicating whether data should be saved.}
+\item{VI_type}{character vector indicating which variable importance should be calculated (when VI_type = NULL no variable importance is calculated)}
 }
 \value{
 gbex returns an object of class "gbex" which contains the following components:
@@ -54,7 +51,6 @@ gbex returns an object of class "gbex" which contains the following components:
 \item{lambda}{Numeric with the learining rate of sigma and gamma}
 \item{B}{Numeric with number of trees}
 \item{depth}{Numeric with maximum tree depth for sigma and gamma}
-\item{alpha}{Power divergence parameter used}
 }
 \description{
 Estimate the Generalized Pareto distribution conditional on covariates using a boosting procedure.
