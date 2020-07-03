@@ -8,6 +8,8 @@
 #' @param par_name parameter name for which to do the cross validation (see details)
 #' @param par_grid the grid of parameter values for par to do a gridsearch, either a list or vector (see details)
 #' @param Bmax the maximum number of trees
+#' @param loss_func The loss function used for selecting the optimal model, currently supported c("likelihood","crps","quant_loss")
+#' @param tau_loss probability level for quantile loss only used for quantile loss
 #' @param stratified whether the cross validation procedure should use stratified sampling
 #' @param ncores number of cores to use for parallelization, if not specified cores are chosen by detectCores function from the parallel package
 #' @param ... Other arguments to be passed to the gbex function (details)
@@ -31,11 +33,12 @@
 #'
 #' In the ... the values of other tuning parameters are specified. If these are not supplied the standard values of gbex will be used
 #' @export
-CV_gbex <- function(y,X,num_folds,Bmax,par_name=NULL,par_grid=NULL,stratified=F, ncores = parallel::detectCores(),...){
+CV_gbex <- function(y,X,num_folds,Bmax,loss_func = "likelihood", tau_loss = 0.5,
+                    par_name=NULL,par_grid=NULL,stratified=F, ncores = parallel::detectCores(),...){
   if(is.null(par_name)){
-    CV_result = CV_normal(y,X,num_folds,Bmax,stratified,ncores,...)
+    CV_result = CV_normal(y,X,num_folds,Bmax,loss_func,tau_loss,stratified,ncores,...)
   } else if(par_name %in% c("lambda","lambda_ratio","lambda_scale","depth","min_leaf_size","sf","alpha")){
-    CV_result = CV_par(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores,...)
+    CV_result = CV_par(y,X,num_folds,par_name,par_grid,Bmax,loss_func,tau_loss,stratified,ncores,...)
   } else if(par_name == "B"){
     stop("For optimizing B leave par_name = NULL")
   } else{
@@ -73,16 +76,18 @@ divide_in_folds <- function(y,num_folds,stratified = F){
 #' @param y Numeric vector of response
 #' @param num_folds the number of folds used to determine the optimal number of trees
 #' @param Bmax maximum number of trees used for finding the optimal
+#' @param loss_func loss function used for selecting optimal model
+#' @param tau_loss probability level for quantile loss only used for quantile loss
 #' @param stratified indicate whether stratified sampling should be used
 #' @param ncores number of cores to use for parallelization, if not specified cores are chosen by detectCores function from the parallel package
 #' @param ... Additional arguments supplied to gbex function
 #' @return A CV_gbex object
 #' @export
-CV_normal <- function(y,X,num_folds,Bmax,stratified,ncores,...){
+CV_normal <- function(y,X,num_folds,Bmax,loss_func,tau_loss,stratified,ncores,...){
   arguments = list(...)
   folds = divide_in_folds(y,num_folds,stratified)
 
-  dev_list = parallel::mclapply(1:num_folds,function(fold){
+  loss_list = parallel::mclapply(1:num_folds,function(fold){
     ytrain = y[folds!=fold]
     ytest = y[folds==fold]
     Xtrain = X[folds!=fold,]
@@ -90,16 +95,16 @@ CV_normal <- function(y,X,num_folds,Bmax,stratified,ncores,...){
 
     arguments_gbex = c(arguments,list(y=ytrain,X=Xtrain,B=Bmax))
     fit = do.call(gbex,arguments_gbex)
-    dev = dev_per_step(fit,y=ytest,X=Xtest)
-    return(dev)
+    loss = loss_per_step(fit,y=ytest,X=Xtest,loss_func,tau_loss)
+    return(loss)
   },mc.cores=ncores)
-  dev_matrix = do.call("cbind",dev_list)
+  loss_matrix = do.call("cbind",loss_list)
 
-  dev = apply(dev_matrix,1,mean)
-  B_opt = which(dev == min(dev))-1
+  loss = apply(loss_matrix,1,mean)
+  B_opt = which(loss == min(loss))-1
 
   output = list(par_CV = B_opt, par = "B", grid = 1:Bmax,
-                grid_B = 0:Bmax, dev_all = dev, dev_folds = dev_matrix,
+                grid_B = 0:Bmax, loss_all = loss, loss_folds = loss_matrix,
                 num_folds = num_folds,folds=folds, y=y,X=X,
                 stratified = stratified, call = match.call())
   class(output) = "CV_gbex"
@@ -114,12 +119,14 @@ CV_normal <- function(y,X,num_folds,Bmax,stratified,ncores,...){
 #' @param par_name the name of the parameter
 #' @param par_grid a grid to perform parameter optimization either a vector or a list
 #' @param Bmax maximum number of trees used for finding the optimal
+#' @param loss_func loss function for selecting the optimal model
+#' @param tau_loss probability level for quantile loss only used for quantile loss
 #' @param stratified indicate whether stratified sampling should be used
 #' @param ncores number of cores to use for parallelization, if not specified cores are chosen by detectCores function from the parallel package
 #' @param ... Additional arguments supplied to gbex function
 #' @return A CV_gbex object
 #' @export
-CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores,...){
+CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,loss_func,tau_loss,stratified,ncores,...){
   arguments = list(...)
   folds = divide_in_folds(y,num_folds,stratified)
 
@@ -130,7 +137,7 @@ CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores,...){
   }),recursive = F)
 
 
-  dev_list = parallel::mclapply(parallelization_list,function(job){
+  loss_list = parallel::mclapply(parallelization_list,function(job){
     fold = job$fold
     par_value = job$par_value
 
@@ -142,24 +149,108 @@ CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores,...){
     arguments_gbex = c(arguments,list(y=ytrain,X=Xtrain,B=Bmax))
     arguments_gbex[[par_name]] = par_value
     fit = do.call(gbex,arguments_gbex)
-    dev = dev_per_step(fit,y=ytest,X=Xtest)
-    return(dev)
+    loss = loss_per_step(fit,y=ytest,X=Xtest,loss_func,tau_loss)
+    return(loss)
   },mc.cores = ncores)
 
   job_fold = sapply(parallelization_list,function(job){job$fold})
-  dev_matrix_list = tapply(dev_list,job_fold,function(dev){do.call("cbind",dev)})
+  loss_matrix_list = tapply(loss_list,job_fold,function(loss){do.call("cbind",loss)})
 
-  dev = Reduce("+",dev_matrix_list)/num_folds
-  index_opt = which(apply(dev,2,min) == min(dev))
-  B_opt = which(dev[,index_opt] == min(dev[,index_opt]))
+  loss = Reduce("+",loss_matrix_list)/num_folds
+  index_opt = which(apply(loss,2,min) == min(loss))
+  B_opt = which(loss[,index_opt] == min(loss[,index_opt]))
   par_opt = unlist(par_grid[index_opt])
 
   output = list(par_CV = par_opt, par = par_name, grid = par_grid,
                 grid_B = 0:Bmax, B_opt = B_opt,
-                dev_all = dev, dev_folds = dev_matrix_list,
+                loss_all = loss, loss_folds = loss_matrix_list,
                 num_folds = num_folds, folds=folds,
                 y=y, X=X, stratified = stratified,
                 call = match.call())
   class(output) = "CV_gbex"
   return(output)
+}
+
+
+#' Loss per step
+#'
+#' Compute the loss function per boosting step
+#'
+#' @param object A fitted gbex object
+#' @param X A dataframe with the right column names
+#' @param y A vector of observations
+#' @param loss_func the loss function used
+#' @param tau the probability level for quantile loss (only used when loss_func = "quant_loss")
+#' @return A vector with the loss at each step
+#' @export
+loss_per_step <- function(object,y=NULL,X=NULL,loss_func="likelihood",tau = 0.5){
+  if(is.null(X) & loss_func == "likelihood"){
+    loss = object$dev
+  } else{
+    if(is.null(X)){
+      X = object$X
+    }
+
+    if(object$B==0){
+      theta_input = data.frame(s = rep(object$theta_init$s,length(y)),g=rep(object$theta_init$g,length(y)))
+    } else{
+      theta_init = transform_parameters(object$theta_init,object$gamma_positive,inverse_transform=T)
+
+      sigma_updates = cbind(0,do.call('cbind',lapply(object$trees_sigma,predict,newdata=X)))
+      gamma_updates = cbind(0,do.call('cbind',lapply(object$trees_gamma,predict,newdata=X)))
+
+      sigma_per_step = theta_init$st - object$lambda[1]*apply(sigma_updates,1,cumsum)
+      gamma_per_step = theta_init$gt - object$lambda[2]*apply(gamma_updates,1,cumsum)
+
+      theta_input = transform_parameters(data.frame(st = as.vector(sigma_per_step),
+                                                    gt = as.vector(gamma_per_step)),
+                                         object$gamma_positive, inverse_transform=F)
+    }
+
+    loss_input = cbind(theta_input,as.vector(sapply(y,rep,times=object$B+1)))
+    if(loss_func == "likelihood"){
+      dev_vec = apply(loss_input,1,GP_dev)
+      dev_matrix = matrix(dev_vec,nrow=object$B+1)
+      loss = apply(dev_matrix,1,mean)
+    } else if(loss_func == "quant_loss"){
+      ql_vec = gpd_quant_loss(loss_input[,1],loss_input[,2],loss_input[,3],tau=tau)
+      ql_matrix = matrix(ql_vec,nrow=object$B+1)
+      loss = apply(ql_matrix,1,mean)
+    } else if(loss_func == "crps"){
+      crps_vec = gpd_crps_loss(loss_input[,1],loss_input[,2],loss_input[,3])
+      crps_matrix = matrix(crps_vec,nrow=object$B+1)
+      loss = apply(crps_matrix,1,mean)
+    } else if(loss_func == "AD"){
+      pit_vec = pgpd(loss_input[,3],loss_input[,1],loss_input[,2])
+      pit_matrix = matrix(pit_vec,nrow=object$B + 1)
+      loss = apply(pit_matrix,1,GoF,type = "AD")
+    } else if(loss_func == "CvM"){
+      pit_vec = pgpd(loss_input[,3],loss_input[,1],loss_input[,2])
+      pit_matrix = matrix(pit_vec,nrow=object$B + 1)
+      loss = apply(pit_matrix,1,GoF,type = "CvM")
+    } else{
+      stop("loss function misspecified")
+    }
+  }
+  return(loss)
+}
+
+#' Goodness of fit statistics transformed random variables
+#'
+#'
+#' @param U A vector of transformed random variables
+#' @param type the teststatistic to compute choose from ("CvM","AD") for cramer van mises and anderson darling
+#' @return the value of the teststatistic
+#' @export
+GoF = function(U,type){
+  n = length(U)
+  U_sorted = sort(U)
+  if(type == "AD"){
+    statistic = -n - 1/n * sum((2*(1:n)-1) * (log(U_sorted) + log(1-rev(U_sorted))))
+  } else if(type == "CvM"){
+    statistic = 1/(12*n) + sum((U_sorted-(2*(1:n) -1)/(2*n))^2)
+  } else{
+    stop("This type for GoF is not defined.")
+  }
+  return(statistic)
 }

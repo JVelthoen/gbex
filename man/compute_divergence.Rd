@@ -4,14 +4,12 @@
 \alias{compute_divergence}
 \title{Divergence}
 \usage{
-compute_divergence(y, theta, alpha, gamma_positive)
+compute_divergence(y, theta, gamma_positive)
 }
 \arguments{
 \item{y}{Vector of observations}
 
 \item{theta}{Named data frame of parameters for the generelized pareto distribution}
-
-\item{alpha}{The power for the divergence if 0 then maximum likelihood is used (default 0)}
 
 \item{gamma_positive}{boolean indicating whether gamma should be positive}
 }
