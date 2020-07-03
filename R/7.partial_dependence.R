@@ -5,11 +5,11 @@
 #' numeric value corresponding to the variable.
 #' @export
 calc_PD <- function(object,var_name){
-  if(is.null(object$X)){
+  if(is.null(object$data)){
     stop("Data is not saved into gbex object")
   }
 
-  values = sort(unique(as.vector(object$X[[var_name]])))
+  values = sort(unique(as.vector(object$data[[var_name]])))
 
   theta_init = transform_parameters(object$theta_init,object$gamma_positive,inverse_transform=T)
   PD_per_tree_sigma = sapply(object$trees_sigma,PD_tree,var_name=var_name,values=values)
@@ -33,9 +33,9 @@ partial_dependence <- function(object,variable){
     if(ncol(object$X) < round(variable)){
       stop("Column index out of range")
     } else{
-      variable = colnames(object$X)[round(variable)]
+      variable = colnames(object$data)[round(variable)]
     }
-  } else if(is.null(object$X[[variable]])){
+  } else if(is.null(object$data[[variable]])){
     stop("Variable name is not recognized.")
   }
   PD = calc_PD(object,variable)

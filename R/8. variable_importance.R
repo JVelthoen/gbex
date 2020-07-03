@@ -1,16 +1,14 @@
-#' Calculate variable importance for a gbex object
+#' Make a figure of the variable importance
 #'
 #' @param object A gbex object
+#' @param type the type of variable importance to compute choose from c("relative","permutation")
+#' @param scaled boolean indicating if the importance is scaled between 0 and 100
 #' @return A plot with an ordered histogram of the scaled variable importance measures
 #' @details In the case of relative importance two figures are supplied with the importance for sigma and for gamma.
 #' For permutation importance only one figure is supplied as importance for deviance.
 #' @export
-variable_importance <- function(object,type="relative"){
-  if(!is.null(object$variable_importance)){
-    VI = object$variable_importance
-  } else{
-    VI = calc_VI(object,type="relative")
-  }
+variable_importance <- function(object,type="relative",scaled = T){
+  VI = calc_VI(object,type,scaled)
 
   if(type=="permutation"){
     data = data.frame(dev=VI$dev,var=factor(names(VI$dev),levels=names(VI$dev[order(VI$dev,decreasing=T)])))

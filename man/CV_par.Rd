@@ -4,19 +4,7 @@
 \alias{CV_par}
 \title{Cross validation for a parameter in gbex function}
 \usage{
-CV_par(
-  y,
-  X,
-  num_folds,
-  par_name,
-  par_grid,
-  Bmax,
-  loss_func,
-  tau_loss,
-  stratified,
-  ncores,
-  ...
-)
+CV_par(y, X, num_folds, par_name, par_grid, Bmax, stratified, ncores, ...)
 }
 \arguments{
 \item{y}{Numeric vector of response}
@@ -30,10 +18,6 @@ CV_par(
 \item{par_grid}{a grid to perform parameter optimization either a vector or a list}
 
 \item{Bmax}{maximum number of trees used for finding the optimal}
-
-\item{loss_func}{loss function for selecting the optimal model}
-
-\item{tau_loss}{probability level for quantile loss only used for quantile loss}
 
 \item{stratified}{indicate whether stratified sampling should be used}
 

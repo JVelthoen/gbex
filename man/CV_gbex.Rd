@@ -9,8 +9,6 @@ CV_gbex(
   X,
   num_folds,
   Bmax,
-  loss_func = "likelihood",
-  tau_loss = 0.5,
   par_name = NULL,
   par_grid = NULL,
   stratified = F,
@@ -26,10 +24,6 @@ CV_gbex(
 \item{num_folds}{the number of folds used to determine the optimal number of trees}
 
 \item{Bmax}{the maximum number of trees}
-
-\item{loss_func}{The loss function used for selecting the optimal model, currently supported c("likelihood","crps","quant_loss")}
-
-\item{tau_loss}{probability level for quantile loss only used for quantile loss}
 
 \item{par_name}{parameter name for which to do the cross validation (see details)}
 
