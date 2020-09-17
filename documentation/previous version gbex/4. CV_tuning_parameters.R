@@ -97,6 +97,10 @@ CV_normal <- function(y,X,num_folds,Bmax,stratified,ncores,...){
   loss_matrix = do.call("cbind",loss_list)
 
   loss = apply(loss_matrix,1,mean)
+  if(any(is.na(loss))){
+    loss = loss[1:(which(is.na(loss))[1]-1)]
+    warning("In CV validation observations out of range of tail fit. Optimal choice of B might not be correct.")
+  }
   B_opt = which(loss == min(loss))-1
 
   output = list(par_CV = B_opt, par = "B", grid = 1:Bmax,
@@ -151,10 +155,11 @@ CV_par <- function(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores,...){
   loss_matrix_list = tapply(loss_list,job_fold,function(loss){do.call("cbind",loss)})
 
   loss = Reduce("+",loss_matrix_list)/num_folds
-  index_opt = which(apply(loss,2,min) == min(loss))
-  B_opt = which(loss[,index_opt] == min(loss[,index_opt]))
+  index_opt = which(apply(loss,2,min,na.rm = T) == min(loss,na.rm=T))
+  B_opt = which(loss[,index_opt] == min(loss[,index_opt],na.rm=T))
   par_opt = unlist(par_grid[index_opt])
 
+  if(any(is.na(loss))) warning("In some folds NA values were generated be carefull interpreting the results!")
   output = list(par_CV = par_opt, par = par_name, grid = par_grid,
                 grid_B = 0:Bmax, B_opt = B_opt,
                 loss_all = loss, loss_folds = loss_matrix_list,
