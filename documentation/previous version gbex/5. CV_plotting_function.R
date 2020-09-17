@@ -9,6 +9,7 @@ plot.CV_gbex <- function(object,what = "general"){
   if(what == "general"){
     if(object$par == "B"){
       data = data.frame(loss=object$loss_all, B = object$grid_B)
+      data = data[complete.cases(data),]
       g = ggplot2::ggplot(data,ggplot2::aes(y=loss,x=B)) +
         ggplot2::geom_line(size=1) +
         ggplot2::geom_vline(xintercept = which(object$loss_all == min(object$loss_all)) + 1, lty=2,size=0.8) +
@@ -20,6 +21,7 @@ plot.CV_gbex <- function(object,what = "general"){
       data = data.frame(B=grid_B,loss=object$loss_all)
       data = reshape(data, direction = "long", varying = colnames(data)[-1],
                      v.names = "loss", timevar = "par_name")
+      data = data[complete.cases(data),]
       grid_names = unlist(lapply(object$grid,
                                  function(x){
                                    if(length(x) == 1) return(as.character(x))
@@ -46,6 +48,7 @@ plot.CV_gbex <- function(object,what = "general"){
       data = data.frame(B = grid_B,loss_temp)
       data = reshape(data, direction = "long", varying = colnames(data)[-1],
               v.names = "loss", timevar = "fold")
+      data = data[complete.cases(data),]
       data$fold = paste("Fold",data$fold)
       data_all = data.frame(loss=object$loss_all-object$loss_all[1], B = object$grid_B,fold="all")
       data_abline = data.frame(fold = unique(data$fold),

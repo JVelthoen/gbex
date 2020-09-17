@@ -28,7 +28,7 @@ gbex <- function(y,X,B=100,lambda=NULL,
                  lambda_ratio = 10, lambda_scale = 0.01,
                  depth=c(1,1),min_leaf_size=c(30,30),sf=0.75,
                  gamma_positive = T,
-                 silent=F, VI_type = NULL){
+                 silent=F, VI_type = NULL,initial_values = NULL){
   if(!is.data.frame(X)) X = data.frame(X=X)
   if(!silent){
     cat("Fit gbex\n")
@@ -47,8 +47,11 @@ gbex <- function(y,X,B=100,lambda=NULL,
   colnames(data) = c("y",covariates)
 
   # First parameters are the unconditional tail parameters
-  theta_init = first_guess(y,gamma_positive)
-
+  if(is.null(initial_values)){
+    theta_init = first_guess(y,gamma_positive)
+  } else{
+    theta_init = data.frame(s= rep(initial_values[1],n), g= rep(initial_values[2],n))
+  }
   # Transofrmation of the paramters in order to fit the model with the right constrains
   theta_init_t = transform_parameters(theta_init,gamma_positive,inverse_transform=T)
 

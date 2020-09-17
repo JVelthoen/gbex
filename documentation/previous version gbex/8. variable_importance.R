@@ -22,7 +22,7 @@ variable_importance <- function(object,type="relative",scaled = T){
   } else if(type == "relative"){
     if(!(is.null(VI$gamma) & is.null(VI$sigma))){
       data = data.frame(VI=c(VI$sigma,VI$gamma),
-                        par = c(rep("sigma",length(VI$sigma)),rep("gamma",length(VI$gamma))),
+                        par = factor(c(rep("sigma",length(VI$sigma)),rep("gamma",length(VI$gamma))),levels = c("sigma","gamma")),
                         var = c(names(VI$sigma),names(VI$gamma)))
     } else if(!is.null(VI$sigma)){
       data = data.frame(VI= VI$sigma,
