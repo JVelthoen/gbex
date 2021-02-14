@@ -44,7 +44,7 @@ variable_importance <- function(object,type=c("relative","permutation"),scaled =
   } else{
     stop("This type of variable importance is not implemented")
   }
-  ouput = list(type=type, VI_df =VI_df, scaled=scaled)
+  output = list(type=type, VI_df =VI_df, scaled=scaled)
   class(output) = "VI_gbex"
-  return(ouput)
+  return(output)
 }

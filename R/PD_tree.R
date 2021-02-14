@@ -52,6 +52,7 @@ PD_tree <- function(tree,var_name,values){
 }
 
 #' @rdname PD_tree
+#' @export
 PD_tree2 <- function(tree,var_names,values){
 
   tree_frame = tree$tree$frame

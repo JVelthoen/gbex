@@ -13,6 +13,8 @@
 #' @param min_leaf_size numeric, of length two indicatin the minimum of observations in a leaf node for sigma and gamma trees.
 #' @param sf numeric, sample fraction between 0 and 1
 #' @param initial_values numeric, the initial values of the sigma and gamma parameter. If NULL the parameters are estimated by fitting the GPD to Y.
+#' @param pred_sigma charcter vector with names of the predictors to use for sigma (default NULL all covariates will be used)
+#' @param pred_gamma charcter vector with names of the predictors to use for gamma (default NULL all covariates will be used)
 #' @param silent boolean if true progress is given during the fitting procedure.
 #'
 #' @return gbex returns an object of class "gbex" which contains the following components:
@@ -35,10 +37,10 @@
 #'
 #' @export
 gbex <- function(y,X,B=100,lambda=NULL,
-                 lambda_ratio = 7, lambda_scale = 0.01,
-                 depth=c(1,1),min_leaf_size=rep(max(10,length(y)/100),2),
+                 lambda_ratio = 7, lambda_scale = 0.05,
+                 depth=c(2,2),min_leaf_size=rep(max(10,length(y)/100),2),
                  sf=0.75, gamma_positive = T,initial_values = NULL,
-                 silent=F){
+                 silent=F, pred_sigma = NULL, pred_gamma = NULL){
   if(!is.data.frame(X)) X = data.frame(X=X)
   if(!silent){
     cat("Fit gbex\n")
@@ -49,6 +51,17 @@ gbex <- function(y,X,B=100,lambda=NULL,
   }
   if(B == 0){
     warning("Setting B=0 is the same as fitting an unconditional GPD on y")
+  }
+  if(is.null(pred_sigma)){
+    pred_sigma = colnames(X)
+  } else if(!(all(pred_sigma %in%  colnames(X)))){
+    stop("pred_sigma should only contain predictors names which are columns in X")
+  }
+
+  if(is.null(pred_gamma)){
+    pred_gamma = colnames(X)
+  } else if(!(all(pred_gamma %in%  colnames(X)))){
+    stop("pred_gamma should only contain predictors names which are columns in X")
   }
 
   n = length(y)
@@ -75,11 +88,12 @@ gbex <- function(y,X,B=100,lambda=NULL,
   dev=rep(mean(boosting_df$dev),B+1)
   if(B>0){
     for(b in 1:B){
+      subsample_index = sample(1:n,round(sf*n),replace=F)
       # Fit gradient trees for sigma and gamma parameter
-      tree_sigma = gradient_tree(boosting_df[subsample_index,covariates,drop=FALSE], ##gradient_tree
+      tree_sigma = gradient_tree(boosting_df[subsample_index,pred_sigma,drop=FALSE], ##gradient_tree
                                  boosting_df$r_st[subsample_index],
                                  boosting_df$r2_st[subsample_index], depth[1], min_leaf_size[1])
-      tree_gamma = gradient_tree(boosting_df[subsample_index,covariates,drop=FALSE],
+      tree_gamma = gradient_tree(boosting_df[subsample_index,pred_gamma,drop=FALSE],
                                  boosting_df$r_gt[subsample_index],
                                  boosting_df$r2_gt[subsample_index], depth[2], min_leaf_size[2])
 
@@ -116,6 +130,8 @@ gbex <- function(y,X,B=100,lambda=NULL,
                 lambda=lambda,B=B,depth=depth,
                 sf =sf, min_leaf_size = min_leaf_size,
                 data = data,
+                pred_sigma = pred_sigma,
+                pred_gamma = pred_gamma,
                 call = func_call)
   class(output) = "gbex"
 

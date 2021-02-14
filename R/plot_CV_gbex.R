@@ -20,7 +20,7 @@ plot.CV_gbex <- function(object){
       data = stats::reshape(data, direction = "long", varying = colnames(data)[-1],
                      v.names = "dev", timevar = "par_name")
       data = data[stats::complete.cases(data),]
-      grid_names = unlist(lapply(object$grid,
+      grid_names = unlist(lapply(object$par_grid,
                                  function(x){
                                    if(length(x) == 1) return(as.character(x))
                                    else return(paste0("(",paste0(x,collapse=","),")"))
@@ -35,7 +35,7 @@ plot.CV_gbex <- function(object){
       g = ggplot2::ggplot(data,ggplot2::aes(y=dev,x=B,lty=par_name)) +
         ggplot2::geom_line(size=1) +
         ggplot2::geom_vline(data = data_vline, ggplot2::aes(xintercept = int), linetype = 2,size=0.8) +
-        ggplot2::labs(title=paste("CV Deviance per",object$par_name), x = "Iteration", y = "Deviance",lty=object$par_name) +
+        ggplot2::labs(title=paste("CV deviance per",object$par_name), x = "Iteration", y = "Deviance",lty=object$par_name) +
         ggplot2::theme_classic() +
         ggplot2::theme(text = ggplot2::element_text(size = 20),
                        plot.title = ggplot2::element_text(hjust = 0.5))

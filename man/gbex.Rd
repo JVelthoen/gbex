@@ -10,13 +10,15 @@ gbex(
   B = 100,
   lambda = NULL,
   lambda_ratio = 7,
-  lambda_scale = 0.01,
-  depth = c(1, 1),
+  lambda_scale = 0.05,
+  depth = c(2, 2),
   min_leaf_size = rep(max(10, length(y)/100), 2),
   sf = 0.75,
   gamma_positive = T,
   initial_values = NULL,
-  silent = F
+  silent = F,
+  pred_sigma = NULL,
+  pred_gamma = NULL
 )
 }
 \arguments{
@@ -41,6 +43,10 @@ gbex(
 \item{initial_values}{numeric, the initial values of the sigma and gamma parameter. If NULL the parameters are estimated by fitting the GPD to Y.}
 
 \item{silent}{boolean if true progress is given during the fitting procedure.}
+
+\item{pred_sigma}{charcter vector with names of the predictors to use for sigma (default NULL all covariates will be used)}
+
+\item{pred_gamma}{charcter vector with names of the predictors to use for gamma (default NULL all covariates will be used)}
 }
 \value{
 gbex returns an object of class "gbex" which contains the following components:
