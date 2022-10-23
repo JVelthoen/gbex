@@ -4,7 +4,7 @@
 \alias{CV_gbex_B}
 \title{Cross validation for the number of trees B}
 \usage{
-CV_gbex_B(y, X, num_folds, Bmax, stratified, ncores, ...)
+CV_gbex_B(y, X, num_folds, repeat_cv, Bmax, stratified, ncores, ...)
 }
 \arguments{
 \item{y}{numeric vector of response}
@@ -12,6 +12,8 @@ CV_gbex_B(y, X, num_folds, Bmax, stratified, ncores, ...)
 \item{X}{data.frame of covariates}
 
 \item{num_folds}{numeric number of folds to use}
+
+\item{repeat_cv}{numeric indicating how many times to repeat the cross validation (repeating makes the cross validation less sensitive to how the folds are split)}
 
 \item{Bmax}{numeric maximum number of trees to fit for each fold}
 

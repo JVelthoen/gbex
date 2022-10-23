@@ -5,6 +5,7 @@
 #' @param X data.frame of covariates
 #' @param y numeric vector of response
 #' @param num_folds numeric number of folds to use
+#' @param repeat_CV numeric indicating how many times to repeat the cross validation (repeating makes the cross validation less sensitive to how the folds are split)
 #' @param Bmax numeric maximum number of trees to fit for each fold
 #' @param par_name character name of the parameter for which to perform a cross validation (see details)
 #' @param par_grid list or vector a grid for the parameter in par_name (see details)
@@ -43,12 +44,12 @@
 #' }
 #'
 #' @export
-CV_gbex <- function(y,X,num_folds,Bmax,
+CV_gbex <- function(y,X,num_folds, repeat_cv,Bmax,
                     par_name=NULL,par_grid=NULL,stratified=F, ncores = parallel::detectCores(),...){
   if(is.null(par_name)){
-    CV_result = CV_gbex_B(y,X,num_folds,Bmax,stratified,ncores,...)
+    CV_result = CV_gbex_B(y,X,num_folds,repeat_cv,Bmax,stratified,ncores,...)
   } else if(par_name %in% c("lambda","lambda_ratio","lambda_scale","depth","min_leaf_size","sf","alpha")){
-    CV_result = CV_gbex_par(y,X,num_folds,par_name,par_grid,Bmax,stratified,ncores,...)
+    CV_result = CV_gbex_par(y,X,num_folds,repeat_cv,par_name,par_grid,Bmax,stratified,ncores,...)
   } else if(par_name == "B"){
     stop("For optimizing B leave par_name = NULL")
   } else{

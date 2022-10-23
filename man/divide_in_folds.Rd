@@ -4,10 +4,12 @@
 \alias{divide_in_folds}
 \title{Divide observations randomly over folds}
 \usage{
-divide_in_folds(y, num_folds, stratified = F)
+divide_in_folds(y, num_folds, repeat_cv, stratified = F)
 }
 \arguments{
 \item{num_folds}{Integer number of folds used for cross validation}
+
+\item{repeat_cv}{Integer number of repetitions of cross validation}
 
 \item{stratified}{Boolean indicating wheter sampling should be done in a stratified way}
 

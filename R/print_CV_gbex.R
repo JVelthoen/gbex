@@ -6,11 +6,12 @@
 print.CV_gbex <- function(object){
   cat(paste0(deparse(object$call),"\n"))
   cat(paste0("A cross validation object for gbex for parameter ",object$par_name,".\n"))
-  cat(paste0("The number of folds is ",object$num_folds," which are"))
+  cat(paste0("Results obtained by repeating ",object$repeat_cv, " times a cross validation with ",object$num_folds,"  folds.\n"))
+  cat(paste0("Folds are sampled "))
   if(object$stratified){
-    cat(" obtained by stratified sampling.\n")
+    cat(" by stratified sampling.\n")
   } else{
-    cat(" obtained by random sampling.\n")
+    cat(" by random sampling.\n")
   }
   if(object$par_name %in% c("B","sf","lambda_ratio")){
     cat(paste0("The optimal parameter value is ",object$par_name," = ",object$par_CV,".\n"))
