@@ -4,7 +4,18 @@
 \alias{CV_gbex_par}
 \title{Cross validation for a parameter in gbex function}
 \usage{
-CV_gbex_par(y, X, num_folds, par_name, par_grid, Bmax, stratified, ncores, ...)
+CV_gbex_par(
+  y,
+  X,
+  num_folds,
+  repeat_cv,
+  par_name,
+  par_grid,
+  Bmax,
+  stratified,
+  ncores,
+  ...
+)
 }
 \arguments{
 \item{y}{numeric vector of response}
@@ -24,6 +35,8 @@ CV_gbex_par(y, X, num_folds, par_name, par_grid, Bmax, stratified, ncores, ...)
 \item{ncores}{number of cores to used for parallelization of the cross validation, if not specified cores are chosen by detectCores function from the parallel package (Does not work on windows)}
 
 \item{...}{Other arguments to be passed to the gbex function (details)}
+
+\item{repeat_CV}{numeric indicating how many times to repeat the cross validation (repeating makes the cross validation less sensitive to how the folds are split)}
 }
 \value{
 A CV_gbex object see CV_gbex
