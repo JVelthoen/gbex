@@ -4,7 +4,14 @@
 \alias{predict.gbex}
 \title{Predict function for gbex}
 \usage{
-\method{predict}{gbex}(object, newdata = NULL, probs = NULL, what = "par", Blim = NULL)
+\method{predict}{gbex}(
+  object,
+  newdata = NULL,
+  probs = NULL,
+  values = NULL,
+  what = "par",
+  Blim = NULL
+)
 }
 \arguments{
 \item{object}{A fitted gbex object}
@@ -12,6 +19,8 @@
 \item{newdata}{A data.frame with covariates for which to predict if NULL it is done for insample data}
 
 \item{probs}{numeric with probabilities for which to estimate quantiles  (needs what == "quant")}
+
+\item{values}{numeric with values to estimate exceedance probabilities  (needs what == "prob")}
 
 \item{what}{character with "par" for parameters, "quant" for quantiles}
 

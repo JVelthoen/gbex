@@ -6,10 +6,11 @@
 #' @param newdata A data.frame with covariates for which to predict if NULL it is done for insample data
 #' @param what character with "par" for parameters, "quant" for quantiles
 #' @param probs numeric with probabilities for which to estimate quantiles  (needs what == "quant")
+#' @param values numeric with values to estimate exceedance probabilities  (needs what == "prob")
 #' @param Blim Numeric number of trees to use for the prediction
 #' @return A data.frame object with the estimated sigma and gamma parameters or a data.frame with the estimated quantiles
 #' @export
-predict.gbex <- function(object, newdata = NULL,probs = NULL,what="par",Blim=NULL){
+predict.gbex <- function(object, newdata = NULL,probs = NULL,values = NULL,what="par",Blim=NULL){
   if(is.null(Blim)){
     Blim = object$B
   } else if(Blim > object$B){
@@ -39,12 +40,18 @@ predict.gbex <- function(object, newdata = NULL,probs = NULL,what="par",Blim=NUL
     return(theta)
   } else if(what == "quant"){
     if(is.null(probs)){
-      warning("probs needs specification for quantile prediction, using probs = 0.99")
-      probs = 0.99
+      stop("probs needs specification for quantile prediction, using probs = 0.99")
     }
     quant <- sapply(probs,function(p,s,g) (s/g) * ( (1-p)^(-g) - 1),s = theta$s,g = theta$g)
     return(quant)
-  } else {
+  } else if(what == "prob"){
+    if(is.null(values)){
+      stop("values needs specification for exceedance probability prediction, using values = 0.99")
+    }
+    probabilities <- sapply(values,function(q,s,g) (1 + g*(s*q))^(-1/g),s = theta$s,g = theta$g)
+    return(probabilities)
+  } 
+  else {
     stop("This specification of par is not defined")
   }
 }
